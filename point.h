@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <vector>
 #include <set>
+#include <deque>
+#include <list>
 
 struct Point {
 public:
@@ -19,7 +21,7 @@ public:
 
   const Point* origin;
   std::size_t distToOrigin;
-  std::set<Point*> children; // children in the flow tree
+  std::list<Point*> children; // children in the flow tree
 
   Point() : x(0), y(0), tree(NULL), parent(NULL), capacity(0),
     flow(0), next(NULL), origin(NULL), distToOrigin(0) {};

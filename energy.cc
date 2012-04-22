@@ -111,7 +111,7 @@ static unsigned int tree_cap(const Point& from, const Point& to) {
 static void setParent(Point& p, Point& parent) {
   p.parent = &parent;
   p.tree = parent.tree;
-  parent.children.insert(&p);
+  parent.children.push_back(&p);
   p.origin = p.parent->origin;
   p.distToOrigin = p.parent->distToOrigin + 1;
 }
@@ -119,7 +119,7 @@ static void setParent(Point& p, Point& parent) {
 static void setParentRecursive(Point& p, Point& parent) {
   p.parent = &parent;
   p.tree = parent.tree;
-  parent.children.insert(&p);
+  parent.children.push_back(&p);
 
   stack<Point*> pending;
   pending.push(&p);
@@ -128,7 +128,7 @@ static void setParentRecursive(Point& p, Point& parent) {
     pending.pop();
     t->origin = t->parent->origin;
     t->distToOrigin = t->parent->distToOrigin + 1;
-    for (set<Point*>::iterator i = t->children.begin();
+    for (list<Point*>::iterator i = t->children.begin();
          i != t->children.end(); ++i) {
       pending.push(*i);
     }
@@ -136,7 +136,8 @@ static void setParentRecursive(Point& p, Point& parent) {
 }
 
 static void invalidateRecursive(FlowState& state, Point& p) {
-  p.parent->children.erase(&p);
+  p.parent->children.erase(find(p.parent->children.begin(),
+                                p.parent->children.end(), &p));
   p.parent = NULL;
   state.O.push_front(&p);
 
@@ -147,7 +148,7 @@ static void invalidateRecursive(FlowState& state, Point& p) {
     pending.pop();
     t->origin = NULL;
     t->distToOrigin = 0;
-    for (set<Point*>::iterator i = t->children.begin();
+    for (list<Point*>::iterator i = t->children.begin();
          i != t->children.end(); ++i) {
       pending.push(*i);
     }
@@ -190,7 +191,7 @@ static void adopt(FlowState& state) {
     }
     if (p->parent == NULL) {
       // mark children as orphans
-      for (set<Point*>::iterator j = p->children.begin();
+      for (list<Point*>::iterator j = p->children.begin();
            j != p->children.end(); ++j) {
         (*j)->parent = NULL;
         state.O.push_back(*j);
