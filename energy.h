@@ -21,10 +21,17 @@ enum FlowDirection {
 
 struct FlowState {
 public:
-  std::vector<Point> points;
+  // random access required, vector/deque approx same speed.
+  typedef std::deque<Point> PointsSet;
+  // operations: add el, remove el, remove something
+  typedef std::set<Point*> ActiveSet;
+  // operators: add el, remove something
+  typedef std::deque<Point*> OrphanSet;
 
-  std::set<Point*> A;
-  std::deque<Point*> O;
+  PointsSet points;
+
+  ActiveSet A;
+  OrphanSet O;
 
   Point s;
   Point t;
@@ -66,7 +73,7 @@ Frame<T>* cutFrame(FlowState& state, const Frame<T>& subject,
 
   if (DEBUG) {
     std::size_t x = 0;
-    for(std::vector<Point>::iterator i = state.points.begin();
+    for(FlowState::PointsSet::iterator i = state.points.begin();
         i != state.points.end(); ++i) {
       std::cout << i->flow << "/" << i->capacity <<  " ";
       if (++x == state.frame.w) {
@@ -82,7 +89,7 @@ Frame<T>* cutFrame(FlowState& state, const Frame<T>& subject,
   std::size_t row = 0;
 
   result->values.resize(result->w*result->h);
-  for(std::vector<Point>::iterator i = state.points.begin();
+  for(FlowState::PointsSet::iterator i = state.points.begin();
       i != state.points.end(); ++i) {
     std::size_t tox = -1, toy = -1;
     if (i->tree == &state.t) {

@@ -9,19 +9,22 @@
 
 struct Point {
 public:
+  typedef std::vector<Point*> NeighborSet;
+  typedef std::list<Point*> ChildrenSet;
+
   std::size_t x;
   std::size_t y;
   Point* tree;
   Point* parent;
   unsigned int capacity;
   unsigned int flow;
-  std::vector<Point*> to; // nodes I flow into
-  std::vector<Point*> from; // nodes that flow into me
+  NeighborSet to; // nodes I flow into
+  NeighborSet from; // nodes that flow into me
   Point* next;
 
   const Point* origin;
   std::size_t distToOrigin;
-  std::list<Point*> children; // children in the flow tree
+  ChildrenSet children; // children in the flow tree
 
   Point() : x(0), y(0), tree(NULL), parent(NULL), capacity(0),
     flow(0), next(NULL), origin(NULL), distToOrigin(0) {};

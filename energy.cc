@@ -15,15 +15,45 @@
 
 using namespace std;
 
-static size_t getOff(const FlowState& state, size_t x, size_t y) {
+// slightly faster than list
+typedef deque<Point*> Path;
+// much faster than list, slightly faster than vector
+typedef stack<Point*, deque<Point*> > PointStack;
+
+inline static void addActive(FlowState& state, Point* p) {
+  state.A.insert(p);
+}
+
+inline static Point* getActive(FlowState& state) {
+  FlowState::ActiveSet::iterator i = state.A.begin();
+  Point* result = *i;
+  state.A.erase(i);
+  return result;
+}
+
+inline static void removeActive(FlowState& state, Point* p) {
+  state.A.erase(p);
+}
+
+inline static void addOrphan(FlowState& state, Point* p) {
+  state.O.push_back(p);
+}
+
+inline static Point* getOrphan(FlowState& state) {
+  FlowState::OrphanSet::iterator i = state.O.begin();
+  Point* result = *i;
+  state.O.erase(i);
+  return result;
+}
+
+inline static size_t getOff(const FlowState& state, size_t x, size_t y) {
   return y * state.frame.w + x;
 }
 
 /* if into return nodes p flows into, else return nodes that flow into p
    when into=true, first link is the one that is limited*/
-vector<Point*> getNeighbors(const Point& p, FlowState& state,
-  bool into) {
-  vector<Point*> result;
+Point::NeighborSet getNeighbors(const Point& p, FlowState& state, bool into) {
+  Point::NeighborSet result;
   if (&p != &state.s && &p != &state.t) {
     if (state.direction == FLOW_LEFT_RIGHT) {
       if (p.x < state.frame.w-1) {
@@ -100,7 +130,7 @@ vector<Point*> getNeighbors(const Point& p, FlowState& state,
   return result;
 }
 
-static unsigned int tree_cap(const Point& from, const Point& to) {
+inline static unsigned int tree_cap(const Point& from, const Point& to) {
   if (from.next == &to) {
     return from.capacity - from.flow;
   } else {
@@ -121,14 +151,14 @@ static void setParentRecursive(Point& p, Point& parent) {
   p.tree = parent.tree;
   parent.children.push_back(&p);
 
-  stack<Point*> pending;
+  PointStack pending;
   pending.push(&p);
   while (!pending.empty()) {
     Point* t = pending.top();
     pending.pop();
     t->origin = t->parent->origin;
     t->distToOrigin = t->parent->distToOrigin + 1;
-    for (list<Point*>::iterator i = t->children.begin();
+    for (Point::ChildrenSet::iterator i = t->children.begin();
          i != t->children.end(); ++i) {
       pending.push(*i);
     }
@@ -139,16 +169,16 @@ static void invalidateRecursive(FlowState& state, Point& p) {
   p.parent->children.erase(find(p.parent->children.begin(),
                                 p.parent->children.end(), &p));
   p.parent = NULL;
-  state.O.push_front(&p);
+  addOrphan(state, &p);
 
-  stack<Point*> pending;
+  PointStack pending;
   pending.push(&p);
   while (!pending.empty()) {
     Point* t = pending.top();
     pending.pop();
     t->origin = NULL;
     t->distToOrigin = 0;
-    for (list<Point*>::iterator i = t->children.begin();
+    for (Point::ChildrenSet::iterator i = t->children.begin();
          i != t->children.end(); ++i) {
       pending.push(*i);
     }
@@ -160,15 +190,14 @@ static void adopt(FlowState& state) {
     if (DEBUG) {
       cout << "Adopting... (" << state.O.size() << ")\n";
     }
-    Point* p = state.O.front();
-    state.O.pop_front();
+    Point* p = getOrphan(state);
 
     if (DEBUG) {
       cout << "Looking for parent for (X:" << p->x << ",y:" << p->y;
       cout << " in " << (p->tree==&state.s?"S":"T") << ")\n";
     }
 
-    std::vector<Point*>::iterator i;
+    Point::NeighborSet::iterator i;
 
     if (p->tree == &state.s) {
       // look for a parent that flows into p
@@ -191,29 +220,29 @@ static void adopt(FlowState& state) {
     }
     if (p->parent == NULL) {
       // mark children as orphans
-      for (list<Point*>::iterator j = p->children.begin();
+      for (Point::ChildrenSet::iterator j = p->children.begin();
            j != p->children.end(); ++j) {
         (*j)->parent = NULL;
-        state.O.push_back(*j);
+        addOrphan(state, *j);
       }
       p->children.clear();
       if (p->tree == &state.t) {
         // mark potential parents as active
         for (i = p->to.begin(); i != p->to.end(); ++i) {
           if ((*i)->tree == &state.t && tree_cap(*p, **i)) {
-            state.A.insert(*i);
+            addActive(state, *i);
           }
         }
       } else {
         // mark potential parents as active
         for (i = p->from.begin(); i != p->from.end(); ++i) {
           if ((*i)->tree == &state.s && tree_cap(**i, *p)) {
-            state.A.insert(*i);
+            addActive(state, *i);
           }
         }
       }
       p->tree = NULL;
-      state.A.erase(p);
+      removeActive(state, p);
       if (DEBUG) {
         cout << "Did not find parent...\n";
       }
@@ -225,7 +254,9 @@ static void adopt(FlowState& state) {
   }
 }
 
-static void augment(FlowState& state, deque<Point*>& P) {
+static void augment(FlowState& state, Path& P) {
+  // use two iterators to support forward iterators (i.e. lists)
+  Path::iterator i, j;
   if (DEBUG) {
     if (P.front() != &state.s || P.back() != &state.t) {
       cout << "WHAT THE FUCK INVALID PATH!!!!!!!!!!";
@@ -233,12 +264,16 @@ static void augment(FlowState& state, deque<Point*>& P) {
     }
   }
   unsigned int bottleneck = ~0;
-  for(deque<Point*>::iterator i=P.begin()+1; i!=P.end()-1; ++i) {
+  i = P.begin();
+  ++i;
+  j = i;
+  ++j;
+  for(; j != P.end(); ++i, ++j) {
     if (DEBUG) {
       cout << "Point: x: " << (*i)->x << ", y:" << (*i)->y;
       cout << ", flow:" << (*i)->flow << ", cap:" << (*i)->capacity << ", res:";
     }
-    if ((*i)->next == *(i+1)) {
+    if ((*i)->next == *j) {
       unsigned int diff = (*i)->capacity - (*i)->flow;
       if (diff < bottleneck) {
         bottleneck = diff;
@@ -259,14 +294,17 @@ static void augment(FlowState& state, deque<Point*>& P) {
     cout <<"Augmenting (len " << P.size() << " bottleneck ";
     cout << bottleneck << ")\n";
   }
-  for (deque<Point*>::iterator i=P.begin(); i!=P.end(); ++i) {
-    if (i == P.begin() || i == P.end()-1 || (*i)->next == *(i+1))
+  i = P.begin();
+  j = i;
+  ++j;
+  for (; j!=P.end(); ++i, ++j) {
+    if (i == P.begin() || j == P.end() || (*i)->next == *j)
       (*i)->flow += bottleneck;
-    if (i != P.begin() && i != P.end()-1 && (*i)->next == *(i+1)) {
+    if (i != P.begin() && j != P.end() && (*i)->next == *j) {
       if ((*i)->flow == (*i)->capacity) {
-        if ((*i)->tree == (*(i+1))->tree && (*i)->tree == &state.s) {
-          invalidateRecursive(state, **(i+1));
-        } else if ((*i)->tree == (*(i+1))->tree && (*i)->tree == &state.t) {
+        if ((*i)->tree == (*j)->tree && (*i)->tree == &state.s) {
+          invalidateRecursive(state, **j);
+        } else if ((*i)->tree == (*j)->tree && (*i)->tree == &state.t) {
           invalidateRecursive(state, **i);
         }
       }
@@ -274,14 +312,12 @@ static void augment(FlowState& state, deque<Point*>& P) {
   }
 }
 
-static deque<Point*> grow(FlowState& state) {
+static Path grow(FlowState& state) {
   while (state.A.size()) {
     if (DEBUG) {
       cout << "Growing... (active " << state.A.size() << ")\n";
     }
-    set<Point*>::iterator j = state.A.begin();
-    Point* p = *j;
-    state.A.erase(j);
+    Point* p = getActive(state);
 
     vector<Point*>& neighbors = ((p->tree == &state.s)?p->to:p->from);
     for (vector<Point*>::iterator i = neighbors.begin();
@@ -289,9 +325,9 @@ static deque<Point*> grow(FlowState& state) {
       if (!(p->tree==&state.s?tree_cap(*p, **i):tree_cap(**i,*p))) continue;
       if ((*i)->tree == NULL) {
         setParent(**i, *p);
-        state.A.insert(*i);
+        addActive(state, *i);
       } else if ((*i)->tree != p->tree) {
-        deque<Point*> path;
+        Path path;
         for(Point* x = (((p->tree==&state.s)?p:*i));
             x != NULL; x = x->parent) {
           path.push_front(x);
@@ -304,7 +340,7 @@ static deque<Point*> grow(FlowState& state) {
       }
     }
   }
-  return deque<Point*>();
+  return Path();
 }
 
 FlowState* getBestFlow(const Frame<unsigned char>& frame,
@@ -322,7 +358,7 @@ FlowState* getBestFlow(const Frame<unsigned char>& frame,
     }
   }
 
-  for (vector<Point>::iterator i = state->points.begin();
+  for (FlowState::PointsSet::iterator i = state->points.begin();
        i != state->points.end(); ++i) {
     i->to = getNeighbors(*i, *state, true);
     if (i->to[0] != &state->t)
@@ -335,11 +371,11 @@ FlowState* getBestFlow(const Frame<unsigned char>& frame,
   state->t.to = getNeighbors(state->t, *state, true);
   state->t.from = getNeighbors(state->t, *state, false);
 
-  state->A.insert(&state->s);
-  state->A.insert(&state->t);
+  addActive(*state, &state->s);
+  addActive(*state, &state->t);
 
   while (true) {
-    deque<Point*> P = grow(*state);
+    Path P = grow(*state);
     if (P.empty()) {
       return state;
     }
