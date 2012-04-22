@@ -21,28 +21,33 @@ typedef deque<Point*> Path;
 typedef stack<Point*, deque<Point*> > PointStack;
 
 inline static void addActive(FlowState& state, Point* p) {
-  state.A.insert(p);
+  p->active = true;
+  state.A.push_back(p);
 }
 
 inline static Point* getActive(FlowState& state) {
   FlowState::ActiveSet::iterator i = state.A.begin();
   Point* result = *i;
   state.A.erase(i);
-  return result;
+  if (result->active) {
+    result->active = false;
+    return result;
+  } else {
+    return getActive(state);
+  }
 }
 
 inline static void removeActive(FlowState& state, Point* p) {
-  state.A.erase(p);
+  p->active = false;
 }
 
 inline static void addOrphan(FlowState& state, Point* p) {
-  state.O.push_back(p);
+  state.O.push(p);
 }
 
 inline static Point* getOrphan(FlowState& state) {
-  FlowState::OrphanSet::iterator i = state.O.begin();
-  Point* result = *i;
-  state.O.erase(i);
+  Point* result = state.O.front();
+  state.O.pop();
   return result;
 }
 
@@ -289,8 +294,8 @@ static Path grow(FlowState& state) {
     }
     Point* p = getActive(state);
 
-    vector<Point*>& neighbors = ((p->tree == &state.s)?p->to:p->from);
-    for (vector<Point*>::iterator i = neighbors.begin();
+    Point::NeighborSet& neighbors = ((p->tree == &state.s)?p->to:p->from);
+    for (Point::NeighborSet::iterator i = neighbors.begin();
          i != neighbors.end(); ++i) {
       if (!(p->tree==&state.s?tree_cap(*p, **i):tree_cap(**i,*p))) continue;
       if ((*i)->tree == NULL) {
@@ -331,8 +336,8 @@ FlowState* getBestFlow(const Frame<unsigned char>& frame,
   for (FlowState::PointsSet::iterator i = state->points.begin();
        i != state->points.end(); ++i) {
     i->to = getNeighbors(*i, *state, true);
-    if (i->to[0] != &state->t)
-      i->next = i->to[0];
+    if (i->to.front() != &state->t)
+      i->next = i->to.front();
     i->from = getNeighbors(*i, *state, false);
   }
 

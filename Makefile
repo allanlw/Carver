@@ -4,10 +4,10 @@ DEBUG+=-g
 
 #OPT+=-O1
 OPT+=-O2
-OPT+=-finline-functions
+#OPT+=-finline-functions
 OPT+=-funswitch-loops
 
-CCFLAGS=-Wall -Wextra $(OPT) $(DEBUG)
+CCFLAGS=-std=c++0x -Wall -Wextra $(OPT) $(DEBUG)
 
 CCFILES=energy.cc frame.cc test.cc diff.cc
 OFILES=$(patsubst %.cc,%.o,$(CCFILES))

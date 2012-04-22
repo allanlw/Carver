@@ -6,6 +6,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <stack>
+#include <queue>
 
 #ifndef DEBUG
 #define DEBUG 0
@@ -24,9 +26,9 @@ public:
   // random access required, vector/deque approx same speed.
   typedef std::deque<Point> PointsSet;
   // operations: add el, remove el, remove something
-  typedef std::set<Point*> ActiveSet;
+  typedef std::deque<Point*> ActiveSet;
   // operators: add el, remove something
-  typedef std::deque<Point*> OrphanSet;
+  typedef std::queue<Point*, std::deque<Point*> > OrphanSet;
 
   PointsSet points;
 
