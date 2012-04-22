@@ -138,51 +138,21 @@ inline static unsigned int tree_cap(const Point& from, const Point& to) {
   }
 }
 
-static void setParent(Point& p, Point& parent) {
+inline static const Point* getOrigin(const Point* p) {
+  return p->parent?getOrigin(p->parent):p;
+}
+
+inline static void setParent(Point& p, Point& parent) {
   p.parent = &parent;
   p.tree = parent.tree;
   parent.children.push_back(&p);
-  p.origin = p.parent->origin;
-  p.distToOrigin = p.parent->distToOrigin + 1;
 }
 
-static void setParentRecursive(Point& p, Point& parent) {
-  p.parent = &parent;
-  p.tree = parent.tree;
-  parent.children.push_back(&p);
-
-  PointStack pending;
-  pending.push(&p);
-  while (!pending.empty()) {
-    Point* t = pending.top();
-    pending.pop();
-    t->origin = t->parent->origin;
-    t->distToOrigin = t->parent->distToOrigin + 1;
-    for (Point::ChildrenSet::iterator i = t->children.begin();
-         i != t->children.end(); ++i) {
-      pending.push(*i);
-    }
-  }
-}
-
-static void invalidateRecursive(FlowState& state, Point& p) {
+inline static void invalidate(FlowState& state, Point& p) {
   p.parent->children.erase(find(p.parent->children.begin(),
                                 p.parent->children.end(), &p));
   p.parent = NULL;
   addOrphan(state, &p);
-
-  PointStack pending;
-  pending.push(&p);
-  while (!pending.empty()) {
-    Point* t = pending.top();
-    pending.pop();
-    t->origin = NULL;
-    t->distToOrigin = 0;
-    for (Point::ChildrenSet::iterator i = t->children.begin();
-         i != t->children.end(); ++i) {
-      pending.push(*i);
-    }
-  }
 }
 
 static void adopt(FlowState& state) {
@@ -203,8 +173,8 @@ static void adopt(FlowState& state) {
       // look for a parent that flows into p
       for(i = p->from.begin(); i != p->from.end(); ++i) {
         if ((*i)->tree == &state.s && tree_cap(**i, *p) &&
-            (*i)->origin == &state.s) {
-          setParentRecursive(*p, **i);
+            getOrigin(*i) == &state.s) {
+          setParent(*p, **i);
           break;
         }
       }
@@ -212,8 +182,8 @@ static void adopt(FlowState& state) {
       // look for a parent that p flows into
       for(i = p->to.begin(); i != p->to.end(); ++i) {
         if ((*i)->tree == &state.t && tree_cap(*p, **i) &&
-            (*i)->origin == &state.t) {
-          setParentRecursive(*p, **i);
+            getOrigin(*i) == &state.t) {
+          setParent(*p, **i);
           break;
         }
       }
@@ -303,9 +273,9 @@ static void augment(FlowState& state, Path& P) {
     if (i != P.begin() && j != P.end() && (*i)->next == *j) {
       if ((*i)->flow == (*i)->capacity) {
         if ((*i)->tree == (*j)->tree && (*i)->tree == &state.s) {
-          invalidateRecursive(state, **j);
+          invalidate(state, **j);
         } else if ((*i)->tree == (*j)->tree && (*i)->tree == &state.t) {
-          invalidateRecursive(state, **i);
+          invalidate(state, **i);
         }
       }
     }

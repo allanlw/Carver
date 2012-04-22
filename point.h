@@ -22,19 +22,17 @@ public:
   NeighborSet from; // nodes that flow into me
   Point* next;
 
-  const Point* origin;
-  std::size_t distToOrigin;
   ChildrenSet children; // children in the flow tree
 
   Point() : x(0), y(0), tree(NULL), parent(NULL), capacity(0),
-    flow(0), next(NULL), origin(NULL), distToOrigin(0) {};
+    flow(0), next(NULL) {};
   Point(const Point& other) : x(other.x),
     y(other.y), tree(other.tree), parent(other.parent),
-    capacity(other.capacity), flow(other.flow), next(other.next),
-    origin(other.origin), distToOrigin(other.distToOrigin) {};
+    capacity(other.capacity), flow(other.flow), to(),
+    from(), next(other.next), children() {};
   Point(std::size_t x, std::size_t y, unsigned int capacity) :
     x(x), y(y), tree(NULL), parent(NULL), capacity(capacity), flow(0),
-    next(NULL), origin(NULL), distToOrigin(0) {};
+    to(), from(), next(NULL), children() {};
   Point& operator=(const Point& other) {
     if (&other != this) {
       this->x = other.x;
@@ -46,8 +44,7 @@ public:
       this->to = other.to;
       this->from = other.from;
       this->next = other.next;
-      this->origin = other.origin;
-      this->distToOrigin = other.distToOrigin;
+      this->children = children;
     }
     return *this;
   }
