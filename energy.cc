@@ -27,8 +27,7 @@ inline static Point* getActive(FlowState& state) {
   Point* result = state.A.front();
   state.A.pop();
   if (result->active) {
-    result->active = false; // not required
-    return result;
+    return result; // don't need to set result->active to false
   } else {
     return getActive(state);
   }
@@ -251,7 +250,7 @@ static void augment(FlowState& state, Path& P) {
       if (x.flow == x.capacity && x.tree == y.tree) {
         if (x.tree == Point::TREE_S) {
           invalidate(state, y);
-        } else if (x.tree == Point::TREE_T) {
+        } else { // implied x.tree == Point::TREE_T
           invalidate(state, x);
         }
       }
