@@ -2,7 +2,7 @@
 #define _FRAME_H
 
 #include <cstddef>
-#include <deque>
+#include <vector>
 #include <istream>
 #include <ostream>
 #include <string>
@@ -10,9 +10,11 @@
 #define _BINARY_DEFAULT false
 
 template<typename T> struct Frame {
+  typedef std::vector<T> ValuesSet;
+
   std::size_t w;
   std::size_t h;
-  std::deque<T> values;
+  ValuesSet values;
 };
 
 struct RgbPixel {

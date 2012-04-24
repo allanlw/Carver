@@ -9,8 +9,8 @@ struct Point {
 public:
   // Only ever create at beginning. After that only iterate.
   typedef std::vector<Point*> NeighborSet;
-  // Add, remove, iterate.
-  typedef std::list<Point*> ChildrenSet;
+  // Add, remove, iterate. deque slightly faster than list.
+  typedef std::deque<Point*> ChildrenSet;
 
   std::size_t x;
   std::size_t y;

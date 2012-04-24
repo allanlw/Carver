@@ -2,6 +2,7 @@
 
 #include <string>
 #include <cctype>
+#include <deque>
 
 using namespace std;
 
@@ -63,6 +64,7 @@ Frame<unsigned char>* loadPgm(std::istream& is) {
   values.pop_front();
   float max = values.front();
   values.pop_front();
+  r->values.reserve(r->w * r->h);
   while (values.size()) {
     r->values.push_back(values.front()/max * 255);
     values.pop_front();
@@ -119,6 +121,7 @@ Frame<RgbPixel>* loadPpm(std::istream& is) {
   values.pop_front();
   float max = values.front();
   values.pop_front();
+  r->values.reserve(r->w * r->h);
   while (values.size()) {
     RgbPixel p;
     p.r = values.front()/max * 255;
@@ -138,7 +141,7 @@ void printPgm(const Frame<unsigned char>& f, ostream& os, bool binary) {
   os << f.w << " " << f.h << "\n";
   os << 255 << "\n";
   size_t j = 0;
-  for (deque<unsigned char>::const_iterator i = f.values.begin();
+  for (Frame<unsigned char>::ValuesSet::const_iterator i = f.values.begin();
        i != f.values.end(); ++i) {
     if (!binary) {
       os << (unsigned int)*i << " ";
@@ -157,7 +160,7 @@ void printPpm(const Frame<RgbPixel>& f, ostream& os, bool binary) {
   os << f.w << " " << f.h << "\n";
   os << 255 << "\n";
   size_t j = 0;
-  for (deque<RgbPixel>::const_iterator i = f.values.begin();
+  for (Frame<RgbPixel>::ValuesSet::const_iterator i = f.values.begin();
        i != f.values.end(); ++i) {
     if (!binary) {
       os << (unsigned int)(*i).r << " ";

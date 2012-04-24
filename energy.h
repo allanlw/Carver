@@ -23,9 +23,9 @@ struct FlowState {
 public:
   // random access required, vector/deque approx same speed.
   typedef std::vector<Point> PointsSet;
-  // operations: add el, remove el, remove something
+  // operations: add, remove something deque clearly faster
   typedef std::queue<Point*, std::deque<Point*> > ActiveSet;
-  // operators: add el, remove something
+  // operators: add, remove something deque clearly faster
   typedef std::queue<Point*, std::deque<Point*> > OrphanSet;
 
   PointsSet points;

@@ -5,7 +5,8 @@ DEBUG+=-g
 #OPT+=-O1
 OPT+=-O2
 OPT+=-finline-functions
-OPT+=-fno-inline-functions-called-once 
+#OPT+=-fno-inline
+#OPT+=-fno-inline-functions-called-once 
 OPT+=-funswitch-loops
 
 CCFLAGS=-std=c++0x -Wall -Wextra $(OPT) $(DEBUG)
