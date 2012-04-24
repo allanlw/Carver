@@ -29,9 +29,6 @@ public:
     capacity(other.capacity), flow(other.flow), to(other.to),
     from(other.from), next(other.next), active(other.active),
     children(other.children) {};
-  Point(unsigned int capacity) :
-    tree(NULL), parent(NULL), capacity(capacity), flow(0),
-    to(), from(), next(NULL), active(false), children() {};
   Point& operator=(const Point& other) {
     if (&other != this) {
       this->tree = other.tree;

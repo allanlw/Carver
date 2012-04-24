@@ -145,9 +145,9 @@ const Point* getOrigin(const Point* p) {
   return (p->parent!=NULL)?getOrigin(p->parent):p;
 }
 
-inline static void setParent(Point& p, Point& parent) {
+inline static void setParent(Point& p, Point& parent, Point* tree) {
   p.parent = &parent;
-  p.tree = parent.tree;
+  p.tree = tree;
   parent.children.push_back(&p);
 }
 
@@ -169,7 +169,7 @@ static void adopt(FlowState& state) {
         Point &x = **i;
         if (x.tree == &state.s && tree_cap(x, p) &&
             getOrigin(&x) == &state.s) {
-          setParent(p, x);
+          setParent(p, x, &state.s);
           break;
         }
       }
@@ -180,7 +180,7 @@ static void adopt(FlowState& state) {
         Point &x = **i;
         if (x.tree == &state.t && tree_cap(p, x) &&
             getOrigin(&x) == &state.t) {
-          setParent(p, x);
+          setParent(p, x, &state.t);
           break;
         }
       }
@@ -234,9 +234,10 @@ static void augment(FlowState& state, Path& P) {
   for (Path::iterator j = P.begin(), i = j++; j != P.end(); ++i, ++j) {
     Point& x = **i;
     Point& y = **j;
-    if (i == P.begin() || j == P.end() || x.next == &y)
+    if (i == P.begin() || j == P.end()) {
       x.flow += bottleneck;
-    if (i != P.begin() && j != P.end() && x.next == &y) {
+    } else if (x.next == &y) {
+      x.flow += bottleneck;
       if (x.flow == x.capacity && x.tree == y.tree) {
         if (x.tree == &state.s) {
           invalidate(state, y);
@@ -248,18 +249,19 @@ static void augment(FlowState& state, Path& P) {
   }
 }
 
-static Path getPath(Point& a, Point& b) {
-  Path path;
+static Path* getPath(Point& a, Point& b) {
+  Path* result = new Path;
+  Path& path = *result;
   for(Point* x = &a; x != NULL; x = x->parent) {
     path.push_front(x);
   }
   for(Point* x = &b; x != NULL; x = x->parent) {
     path.push_back(x);
   }
-  return path;
+  return result;
 }
 
-static Path grow(FlowState& state) {
+static Path* grow(FlowState& state) {
   while (!state.A.empty()) {
     Point& p = *getActive(state);
     // manually unswitched loop
@@ -272,7 +274,7 @@ static Path grow(FlowState& state) {
         } else if (x.tree != NULL) { // (*i)->tree != p->tree
           return getPath(p, x);
         } else {
-          setParent(x, p);
+          setParent(x, p, &state.s);
           addActive(state, &x);
         }
       }
@@ -285,13 +287,13 @@ static Path grow(FlowState& state) {
         } else if (x.tree != NULL) { // (*i)->tree != p->tree
           return getPath(x, p);
         } else {
-          setParent(x, p);
+          setParent(x, p, &state.t);
           addActive(state, &x);
         }
       }
     }
   }
-  return Path();
+  return NULL;
 }
 
 FlowState* getBestFlow(const Frame<unsigned char>& frame,
@@ -326,11 +328,12 @@ FlowState* getBestFlow(const Frame<unsigned char>& frame,
   addActive(*state, &state->t);
 
   while (true) {
-    Path P = grow(*state);
-    if (P.empty()) {
+    Path* P = grow(*state);
+    if (P == NULL) {
       return state;
     }
-    augment(*state, P);
+    augment(*state, *P);
+    delete P;
     adopt(*state);
   }
 }

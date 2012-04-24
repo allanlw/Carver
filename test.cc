@@ -22,9 +22,9 @@ void write_out_file(const Frame<T>& img, string name) {
 }
 
 int main(int argc, char** argv) {
-  string ifilename = "frame.pgm";
-  string ofilename = "frame_carved.pgm";
-  string odebugfilename = "frame_seam.pgm";
+  string ifilename = "frame.pnm";
+  string ofilename = "frame_carved.pnm";
+  string odebugfilename = "frame_seam.pnm";
   bool debug = false;
   size_t carves = 1;
   int c;

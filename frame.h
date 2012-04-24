@@ -7,7 +7,7 @@
 #include <ostream>
 #include <string>
 
-#define _BINARY_DEFAULT false
+#define _BINARY_DEFAULT true
 
 template<typename T> struct Frame {
   typedef std::vector<T> ValuesSet;
