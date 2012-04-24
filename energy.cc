@@ -148,12 +148,9 @@ const Point* getOrigin(const Point* p) {
 inline static void setParent(Point& p, Point& parent, Point* tree) {
   p.parent = &parent;
   p.tree = tree;
-  parent.children.push_back(&p);
 }
 
 inline static void invalidate(FlowState& state, Point& p) {
-  p.parent->children.erase(find(p.parent->children.begin(),
-                                p.parent->children.end(), &p));
   p.parent = NULL;
   addOrphan(state, &p);
 }
@@ -186,14 +183,15 @@ static void adopt(FlowState& state) {
       }
     }
     if (p.parent == NULL) {
-      // mark children as orphans
-      for (Point::ChildrenSet::iterator j = p.children.begin();
-           j != p.children.end(); ++j) {
-        Point& x = **j;
-        x.parent = NULL;
-        addOrphan(state, &x);
-      }
       if (p.tree == &state.t) {
+        for (Point::NeighborSet::iterator i = p.from.begin();
+             i != p.from.end(); ++i) {
+          Point& x = **i;
+          if (x.parent == &p) {
+            x.parent = NULL;
+            addOrphan(state, &x);
+          }
+        }
         // mark potential parents as active
         for (Point::NeighborSet::iterator i = p.to.begin();
              i != p.to.end(); ++i) {
@@ -203,6 +201,14 @@ static void adopt(FlowState& state) {
           }
         }
       } else {
+        for (Point::NeighborSet::iterator i = p.to.begin();
+             i != p.to.end(); ++i) {
+          Point& x = **i;
+          if (x.parent == &p) {
+            x.parent = NULL;
+            addOrphan(state, &x);
+          }
+        }
         // mark potential parents as active
         for (Point::NeighborSet::iterator i = p.from.begin();
              i != p.from.end(); ++i) {
@@ -212,7 +218,6 @@ static void adopt(FlowState& state) {
           }
         }
       }
-      p.children.clear();
       p.tree = NULL;
       removeActive(state, &p);
     }

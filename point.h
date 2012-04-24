@@ -9,8 +9,6 @@ struct Point {
 public:
   // Only ever create at beginning. After that only iterate.
   typedef std::vector<Point*> NeighborSet;
-  // Add, remove, iterate. deque slightly faster than list.
-  typedef std::deque<Point*> ChildrenSet;
 
   Point* tree;
   Point* parent;
@@ -21,14 +19,11 @@ public:
   Point* next;
   bool active;
 
-  ChildrenSet children; // children in the flow tree
-
   Point() : tree(NULL), parent(NULL), capacity(0),
-    flow(0), to(), from(), next(NULL), active(false), children() {};
+    flow(0), to(), from(), next(NULL), active(false) {};
   Point(const Point& other) : tree(other.tree), parent(other.parent),
     capacity(other.capacity), flow(other.flow), to(other.to),
-    from(other.from), next(other.next), active(other.active),
-    children(other.children) {};
+    from(other.from), next(other.next), active(other.active) {};
   Point& operator=(const Point& other) {
     if (&other != this) {
       this->tree = other.tree;
@@ -39,7 +34,6 @@ public:
       this->from = other.from;
       this->next = other.next;
       this->active = other.active;
-      this->children = children;
     }
     return *this;
   }
