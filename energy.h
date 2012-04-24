@@ -75,7 +75,7 @@ Frame<T>* cutFrame(FlowState& state, const Frame<T>& subject,
   for(size_t i = 0; i < state.points.size(); i++) {
     std::size_t x = i % subject.w, y = i / subject.w;
     std::size_t tox = -1, toy = -1;
-    if (state.points[i].tree == &state.t) {
+    if (state.points[i].tree == Point::TREE_T) {
       if (state.direction == FLOW_LEFT_RIGHT && x > 0) {
         tox = x - 1;
         toy = y;

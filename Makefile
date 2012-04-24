@@ -1,10 +1,10 @@
-#DEBUG=-DDEBUG
 #DEBUG+=-pg
 DEBUG+=-g
 
 #OPT+=-O1
 OPT+=-O2
 OPT+=-finline-functions
+OPT+=-fshort-enums
 #OPT+=-fno-inline
 #OPT+=-fno-inline-functions-called-once 
 OPT+=-funswitch-loops
@@ -17,6 +17,7 @@ OFILES=$(patsubst %.cc,%.o,$(CCFILES))
 all : test
 
 test : $(OFILES)
+#test : $(CCFILES)
 	g++ $(CCFLAGS) $^ -o $@
 
 %.o : %.cc
