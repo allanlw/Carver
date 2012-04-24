@@ -19,9 +19,12 @@ string getMagic(std::istream& is) {
 Frame<unsigned char>* loadPgm(std::istream& is) {
   Frame<unsigned char>* r = new Frame<unsigned char>();
 
-  string line;
+  r->w = 0;
+  r->h = 0;
 
-  deque<unsigned int> values;
+  int max = -1;
+
+  string line;
 
   getline(is, line);
   bool binary;
@@ -38,7 +41,11 @@ Frame<unsigned char>* loadPgm(std::istream& is) {
     int c = is.peek();
     if (is.eof()) break;
     if (binary && raster) {
-      values.push_back(is.get());
+      r->values.push_back(is.get() * 0xFF / max);
+      if (r->values.size() > r->w * r->h) {
+        delete r;
+        return NULL;
+      }
     } else if (!comment && c == '#') {
       comment = true;
       is.get();
@@ -48,26 +55,27 @@ Frame<unsigned char>* loadPgm(std::istream& is) {
     } else if (!comment && isdigit(c)) {
       unsigned int v;
       is >> v;
-      values.push_back(v);
-      if (binary && values.size() == 3) {
-        raster = true;
-        is.get(); // discard 1xwhitespace value
+      if (r->w == 0) {
+        r->w = v;
+      } else if (r->h == 0) {
+        r->h = v;
+      } else if (max == -1) {
+        max = v;
+        r->values.reserve(r->w * r->h);
+        if (binary) {
+          raster = true;
+          is.get(); // discard single whitespace before raster
+        }
+      } else {
+        r->values.push_back(v * 0xFF / max);
+        if (r->values.size() > r->w * r->h) {
+          delete r;
+          return NULL;
+        }
       }
     } else {
       is.get();
     }
-  }
-
-  r->w = values.front();
-  values.pop_front();
-  r->h = values.front();
-  values.pop_front();
-  float max = values.front();
-  values.pop_front();
-  r->values.reserve(r->w * r->h);
-  while (values.size()) {
-    r->values.push_back(values.front()/max * 255);
-    values.pop_front();
   }
 
   return r;
@@ -119,16 +127,16 @@ Frame<RgbPixel>* loadPpm(std::istream& is) {
   values.pop_front();
   r->h = values.front();
   values.pop_front();
-  float max = values.front();
+  int max = values.front();
   values.pop_front();
   r->values.reserve(r->w * r->h);
   while (values.size()) {
     RgbPixel p;
-    p.r = values.front()/max * 255;
+    p.r = values.front() * 0xFF/max;
     values.pop_front();
-    p.g = values.front()/max * 255;
+    p.g = values.front() * 0xFF/max;
     values.pop_front();
-    p.b = values.front()/max * 255;
+    p.b = values.front() * 0xFF/max;
     values.pop_front();
     r->values.push_back(p);
   }
