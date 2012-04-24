@@ -38,13 +38,13 @@ Frame<unsigned char>* loadPgm(std::istream& is) {
     if (is.eof()) break;
     if (binary && raster) {
       values.push_back(is.get());
-    } else if (c == '#') {
+    } else if (!comment && c == '#') {
       comment = true;
       is.get();
     } else if (c == '\n') {
       comment = false;
       is.get();
-    } else if (isdigit(c)) {
+    } else if (!comment && isdigit(c)) {
       unsigned int v;
       is >> v;
       values.push_back(v);
@@ -94,13 +94,13 @@ Frame<RgbPixel>* loadPpm(std::istream& is) {
     if (is.eof()) break;
     if (binary && raster) {
       values.push_back(is.get());
-    } else if (c == '#') {
+    } else if (!comment && c == '#') {
       comment = true;
       is.get();
     } else if (c == '\n') {
       comment = false;
       is.get();
-    } else if (isdigit(c)) {
+    } else if (!comment && isdigit(c)) {
       unsigned int v;
       is >> v;
       values.push_back(v);

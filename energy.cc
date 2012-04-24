@@ -17,18 +17,15 @@ using namespace std;
 
 // slightly faster than list
 typedef deque<Point*> Path;
-// much faster than list, slightly faster than vector
-typedef stack<Point*, deque<Point*> > PointStack;
 
 inline static void addActive(FlowState& state, Point* p) {
   p->active = true;
-  state.A.push_back(p);
+  state.A.push(p);
 }
 
 inline static Point* getActive(FlowState& state) {
-  FlowState::ActiveSet::iterator i = state.A.begin();
-  Point* result = *i;
-  state.A.erase(i);
+  Point* result = state.A.front();
+  state.A.pop();
   if (result->active) {
     result->active = false;
     return result;
@@ -57,8 +54,9 @@ inline static size_t getOff(const FlowState& state, size_t x, size_t y) {
 
 /* if into return nodes p flows into, else return nodes that flow into p
    when into=true, first link is the one that is limited*/
-Point::NeighborSet getNeighbors(const Point& p, FlowState& state, bool into) {
-  Point::NeighborSet result;
+static void getNeighbors(const Point& p, FlowState& state, bool into,
+                                Point::NeighborSet& result) {
+  result.reserve(4);
   if (&p != &state.s && &p != &state.t) {
     if (state.direction == FLOW_LEFT_RIGHT) {
       if (p.x < state.frame.w-1) {
@@ -109,30 +107,29 @@ Point::NeighborSet getNeighbors(const Point& p, FlowState& state, bool into) {
     }
   } else if (&p == &state.s && into) {
     if (state.direction == FLOW_LEFT_RIGHT) {
-      for(size_t i = 0; i < state.frame.h; i++) {
+      for(size_t i = 0; i < state.frame.h; ++i) {
         size_t o = getOff(state, 0, i);
         result.push_back(&state.points[o]);
       }
     } else {
-      for(size_t i = 0; i < state.frame.w; i++) {
+      for(size_t i = 0; i < state.frame.w; ++i) {
         size_t o = getOff(state, i, 0);
         result.push_back(&state.points[o]);
       }
     }
   } else if (&p == &state.t && !into) {
     if (state.direction == FLOW_LEFT_RIGHT) {
-      for(size_t i = 0; i < state.frame.h; i++) {
+      for(size_t i = 0; i < state.frame.h; ++i) {
         size_t o = getOff(state, state.frame.w-1, i);
         result.push_back(&state.points[o]);
       }
     } else {
-      for(size_t i = 0; i < state.frame.w; i++) {
+      for(size_t i = 0; i < state.frame.w; ++i) {
         size_t o = getOff(state, i, state.frame.h-1);
         result.push_back(&state.points[o]);
       }
     }
   }
-  return result;
 }
 
 inline static unsigned int tree_cap(const Point& from, const Point& to) {
@@ -143,7 +140,7 @@ inline static unsigned int tree_cap(const Point& from, const Point& to) {
   }
 }
 
-inline static const Point* getOrigin(const Point* p) {
+static const Point* getOrigin(const Point* p) {
   return p->parent?getOrigin(p->parent):p;
 }
 
@@ -223,7 +220,8 @@ static void adopt(FlowState& state) {
       }
     } else {
       if (DEBUG) {
-        cout << "Found parent (X:" << p->parent->x << ",y:" << p->parent->y<<")\n";
+        cout << "Found parent (X:" << p->parent->x;
+        cout  << ",y:" << p->parent->y << ")\n";
       }
     }
   }
@@ -288,7 +286,7 @@ static void augment(FlowState& state, Path& P) {
 }
 
 static Path grow(FlowState& state) {
-  while (state.A.size()) {
+  while (!state.A.empty()) {
     if (DEBUG) {
       cout << "Growing... (active " << state.A.size() << ")\n";
     }
@@ -301,7 +299,7 @@ static Path grow(FlowState& state) {
       if ((*i)->tree == NULL) {
         setParent(**i, *p);
         addActive(state, *i);
-      } else if ((*i)->tree != p->tree) {
+      } else { // (*i)->tree != p->tree
         Path path;
         for(Point* x = (((p->tree==&state.s)?p:*i));
             x != NULL; x = x->parent) {
@@ -327,6 +325,8 @@ FlowState* getBestFlow(const Frame<unsigned char>& frame,
 
   state->direction = direction;
 
+  state->points.reserve(frame.h * frame.w);
+
   for(size_t y = 0; y < frame.h; y++) {
     for(size_t x = 0; x < frame.w; x++) {
       state->points.push_back(Point(x, y, frame.values[getOff(*state,x,y)]+1));
@@ -335,16 +335,16 @@ FlowState* getBestFlow(const Frame<unsigned char>& frame,
 
   for (FlowState::PointsSet::iterator i = state->points.begin();
        i != state->points.end(); ++i) {
-    i->to = getNeighbors(*i, *state, true);
+    getNeighbors(*i, *state, true, i->to);
     if (i->to.front() != &state->t)
       i->next = i->to.front();
-    i->from = getNeighbors(*i, *state, false);
+    getNeighbors(*i, *state, false, i->from);
   }
 
-  state->s.to = getNeighbors(state->s, *state, true);
-  state->s.from = getNeighbors(state->s, *state, false);
-  state->t.to = getNeighbors(state->t, *state, true);
-  state->t.from = getNeighbors(state->t, *state, false);
+  getNeighbors(state->s, *state, true, state->s.to);
+  getNeighbors(state->s, *state, false, state->s.from);
+  getNeighbors(state->t, *state, true, state->t.to);
+  getNeighbors(state->t, *state, false, state->t.from);
 
   addActive(*state, &state->s);
   addActive(*state, &state->t);

@@ -26,9 +26,10 @@ int main(int argc, char** argv) {
   string ofilename = "frame_carved.pgm";
   string odebugfilename = "frame_seam.pgm";
   bool debug = false;
+  size_t carves = 1;
   int c;
 
-  while ((c = getopt(argc, argv, "f:o:dg:")) != -1) {
+  while ((c = getopt(argc, argv, "f:o:dg:c:")) != -1) {
     switch (c) {
     case 'f':
       ifilename = optarg;
@@ -41,6 +42,9 @@ int main(int argc, char** argv) {
       break;
     case 'g':
       odebugfilename = optarg;
+      break;
+    case 'c':
+      carves = atoi(optarg);
       break;
     default:
       return 1;
@@ -62,8 +66,6 @@ int main(int argc, char** argv) {
     Frame<RgbPixel>* rgbC;
   };
 
-  Frame<unsigned char>* diffF = NULL;
-
   cout << "Loading " << ifilename << "\n";
   fstream ifile(ifilename.c_str(), fstream::in);
   string magic = getMagic(ifile);
@@ -81,41 +83,50 @@ int main(int argc, char** argv) {
   }
   cout << "Loaded " << ifilename << " (" << (grey?greyF->w:rgbF->w);
   cout << "x" << (grey?greyF->h:rgbF->w);
-  cout << " grey:" << grey << ")" << "\n";
+  cout << " grey:" << (grey?"true":"false") << ")" << "\n";
 
-  diffF = (grey?getDifferential(*greyF):getDifferential(*rgbF));
+  for (size_t i = 0; i < carves; i++) {
+    Frame<unsigned char>* diffF = (grey?getDifferential(*greyF):
+                                        getDifferential(*rgbF));
 
-  cout << "Calculating best flow...\n";
-  FlowState* s = getBestFlow(*diffF, FLOW_LEFT_RIGHT);
-  cout << "Done calculating best flow (" << s->points.size();
-  cout << " nodes, flow: " << s->s.flow << ")!\n";
+    cout << "Calculating best flow...\n";
+    FlowState* s = getBestFlow(*diffF, FLOW_LEFT_RIGHT);
+    cout << "Done calculating best flow (" << s->points.size();
+    cout << " nodes, flow: " << s->s.flow << ")!\n";
 
-  cout << "Cutting frame...\n";
-  if (debug) {
-    if (grey) {
-      greyC = new Frame<unsigned char>();
-      greyC->w = greyF->w;
-      greyC->h = greyF->h;
-      greyC->values.resize(greyC->w * rgbC->h);
+    cout << "Cutting frame...\n";
+    if (debug) {
+      if (grey) {
+        greyC = new Frame<unsigned char>();
+        greyC->w = greyF->w;
+        greyC->h = greyF->h;
+        greyC->values.resize(greyC->w * rgbC->h);
+      } else {
+        rgbC = new Frame<RgbPixel>();
+        rgbC->w = rgbF->w;
+        rgbC->h = rgbF->h;
+        rgbC->values.resize(rgbC->w * rgbC->h);
+      }
     } else {
-      rgbC = new Frame<RgbPixel>();
-      rgbC->w = rgbF->w;
-      rgbC->h = rgbF->h;
-      rgbC->values.resize(rgbC->w * rgbC->h);
+      if (grey) {
+        greyC = NULL;
+      } else {
+        rgbC = NULL;
+      }
     }
-  } else {
     if (grey) {
-      greyC = NULL;
+      greyR = cutFrame(*s, *greyF, greyC);
+      delete greyF;
+      greyF = greyR;
     } else {
-      rgbC = NULL;
+      rgbR = cutFrame(*s, *rgbF, rgbC);
+      delete rgbF;
+      rgbF = rgbR;
     }
+    cout << "Done cutting frame...\n";
+    delete diffF;
+    delete s;
   }
-  if (grey) {
-    greyR = cutFrame(*s, *greyF, greyC);
-  } else {
-    rgbR = cutFrame(*s, *rgbF, rgbC);
-  }
-  cout << "Done cutting frame...\n";
 
   if (debug) {
     if (grey) {
@@ -126,21 +137,17 @@ int main(int argc, char** argv) {
   }
 
   if (grey) {
-    write_out_file(*greyR, ofilename);
+    write_out_file(*greyF, ofilename);
   } else {
-    write_out_file(*rgbR, ofilename);
+    write_out_file(*rgbF, ofilename);
   }
 
-  delete s;
   if (grey) {
     delete greyF;
-    delete greyR;
     delete greyC;
   } else {
     delete rgbF;
-    delete rgbR;
     delete rgbC;
   }
-  delete diffF;
   return 0;
 }

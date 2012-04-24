@@ -1,12 +1,10 @@
 #ifndef _ENERGY_H
 #define _ENERGY_H
 
-#include <set>
 #include <deque>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
-#include <stack>
 #include <queue>
 
 #ifndef DEBUG
@@ -24,9 +22,9 @@ enum FlowDirection {
 struct FlowState {
 public:
   // random access required, vector/deque approx same speed.
-  typedef std::deque<Point> PointsSet;
+  typedef std::vector<Point> PointsSet;
   // operations: add el, remove el, remove something
-  typedef std::deque<Point*> ActiveSet;
+  typedef std::queue<Point*, std::deque<Point*> > ActiveSet;
   // operators: add el, remove something
   typedef std::queue<Point*, std::deque<Point*> > OrphanSet;
 
