@@ -4,12 +4,8 @@
 #include <deque>
 #include <cstdlib>
 #include <cstring>
-#include <iostream>
 #include <queue>
-
-#ifndef DEBUG
-#define DEBUG 0
-#endif
+#include <stack>
 
 #include "point.h"
 #include "frame.h"
@@ -24,9 +20,11 @@ public:
   // random access required, vector/deque approx same speed.
   typedef std::vector<Point> PointsSet;
   // operations: add, remove something deque clearly faster
+  // queue much faster than stack (algorithmically)
   typedef std::queue<Point*, std::deque<Point*> > ActiveSet;
-  // operators: add, remove something deque clearly faster
-  typedef std::queue<Point*, std::deque<Point*> > OrphanSet;
+  // operators: add, remove something deque clearly faster than list
+  // potential (small) speedup from using a vector with a large reserved size.
+  typedef std::stack<Point*, std::deque<Point*> > OrphanSet;
 
   PointsSet points;
 
@@ -63,72 +61,37 @@ Frame<T>* cutFrame(FlowState& state, const Frame<T>& subject,
   }
 
   if (cut != NULL) {
-    T* nil = new T();
-    memset(nil, 0x00, sizeof(T));
+    T nil;
+    memset(&nil, 0x00, sizeof(T));
     for (std::size_t x = 0; x < cut->w * cut->h; x++) {
-      cut->values[x] = *nil;
+      cut->values[x] = nil;
     }
-    delete nil;
   }
 
-  if (DEBUG) {
-    std::size_t x = 0;
-    for(FlowState::PointsSet::iterator i = state.points.begin();
-        i != state.points.end(); ++i) {
-      std::cout << i->flow << "/" << i->capacity <<  " ";
-      if (++x == state.frame.w) {
-        std::cout << "\n";
-        x = 0;
-      }
-    }
-    std::cout << "\n";
-  }
-
-  T* one = new T();
-  memset(one, 0xff, sizeof(T));
-  std::size_t row = 0;
+  T one;
+  memset(&one, 0xff, sizeof(T));
 
   result->values.resize(result->w*result->h);
-  for(FlowState::PointsSet::iterator i = state.points.begin();
-      i != state.points.end(); ++i) {
+  for(size_t i = 0; i < state.points.size(); i++) {
+    std::size_t x = i % subject.w, y = i / subject.w;
     std::size_t tox = -1, toy = -1;
-    if (i->tree == &state.t) {
-      if (DEBUG) {
-        std::cout << "#";
-      }
-      if (state.direction == FLOW_LEFT_RIGHT && i->x > 0) {
-        tox = i->x - 1;
-        toy = i->y;
-      } else if (state.direction == FLOW_TOP_BOTTOM && i->y > 0) {
-        tox = i->x;
-        toy = i->y - 1;
+    if (state.points[i].tree == &state.t) {
+      if (state.direction == FLOW_LEFT_RIGHT && x > 0) {
+        tox = x - 1;
+        toy = y;
+      } else if (state.direction == FLOW_TOP_BOTTOM && y > 0) {
+        tox = x;
+        toy = y - 1;
       }
     } else {
-      if (DEBUG) {
-        if (i->tree == &state.s) {
-          std::cout << "O";
-        } else {
-          std::cout << "?";
-        }
-      }
-      tox = i->x;
-      toy = i->y;
+      tox = x;
+      toy = y;
     }
-    result->values[tox + toy*result->w] = subject.values[i->x+i->y*subject.w];
+    result->values[tox + toy*result->w] = subject.values[x+y*subject.w];
     if (cut != NULL) {
-      cut->values[tox + toy*cut->w] ^= *one;
-    }
-    if (DEBUG) {
-      if (++row == state.frame.w) {
-        std::cout << "\n";
-        row = 0;
-      }
+      cut->values[tox + toy*cut->w] ^= one;
     }
   }
-  if (DEBUG) {
-    std::cout << "\n";
-  }
-  delete one;
   return result;
 }
 
