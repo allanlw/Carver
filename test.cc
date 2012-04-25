@@ -1,10 +1,7 @@
-#include "energy.h"
-#include "frame.h"
-#include "getopt.h"
-
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <getopt.h>
 
 #include "frame.h"
 #include "energy.h"

@@ -165,7 +165,7 @@ inline static size_t walkOrigin(Point* p, size_t time, size_t i = 0) {
   if (p->time == time) {
     return p->dist + i;
   } else if (p->parent == NULL) {
-    return ~0;
+    return (size_t)~0;
   } else {
     return walkOrigin(p->parent, time, i+1);
   }
@@ -173,7 +173,7 @@ inline static size_t walkOrigin(Point* p, size_t time, size_t i = 0) {
 
 inline static size_t getOrigin(FlowState& state, Point* p) {
   size_t dist = walkOrigin(p, state.time);
-  if (dist != ~0) {
+  if (dist != (size_t)~0) {
     setDists(p, state.time, dist);
   }
   return dist;
@@ -191,7 +191,8 @@ inline static void do_adoption(FlowState& state, Point& p) {
     Point &x = **i;
     if (x.tree == T && tree_cap<T>(x, p)) {
       size_t t = getOrigin(state, &x);
-      if (t != ~0 && (bestNewParent == NULL || t < bestNewParent->dist)) {
+      if (t != (size_t)~0 &&
+          (bestNewParent == NULL || t < bestNewParent->dist)) {
         bestNewParent = &x;
       }
     }
