@@ -150,14 +150,14 @@ inline static Point* getOrigin(Point* p) {
 }
 
 inline static void setOrigin(Point& p, Point* origin) {
-  queue<Point*, deque<Point*> > pending;
+  queue<Point*, stack<Point*> > pending;
   pending.push(&p);
   while (!pending.empty()) {
     Point& x = *pending.front();
     pending.pop();
     x.origin = origin;
     if (x.tree == Point::TREE_S) {
-      for (Point::NeighborSet::iterator i=x.to.begin();
+      for (Point::NeighborSet::iterator i = x.to.begin();
            i != x.to.end(); ++i) {
         if ((*i)->parent == &x) pending.push(*i);
       }
@@ -262,6 +262,7 @@ static void augment(FlowState& state, Path& P) {
       if (x.flow == x.capacity && x.tree == y.tree) {
         if (x.tree == Point::TREE_S) {
           y.parent = NULL;
+          setOrigin(y, NULL);
           addOrphan(state, &y);
         } else { // implied x.tree == Point::TREE_T
           x.parent = NULL;
@@ -299,6 +300,7 @@ static Path* grow(FlowState& state) {
           return getPath(p, x);
         } else {
           x.parent = &p;
+          x.origin = &state.s;
           x.tree = Point::TREE_S;
           addActive(state, &x);
         }
@@ -313,6 +315,7 @@ static Path* grow(FlowState& state) {
           return getPath(x, p);
         } else {
           x.parent = &p;
+          x.origin = &state.t;
           x.tree = Point::TREE_T;
           addActive(state, &x);
         }
