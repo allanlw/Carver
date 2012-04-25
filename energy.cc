@@ -18,6 +18,8 @@ using namespace std;
 // faster than list
 typedef deque<Point*> Path;
 
+static deque<Point*> pending;
+
 inline static void addActive(FlowState& state, Point* p) {
   p->active = true;
   state.A.push(p);
@@ -149,23 +151,18 @@ inline static Point* getOrigin(Point* p) {
   return p->origin;
 }
 
+template <Point::Tree T>
 inline static void setOrigin(Point& p, Point* origin) {
-  queue<Point*, stack<Point*> > pending;
-  pending.push(&p);
+  pending.push_back(&p);
   while (!pending.empty()) {
-    Point& x = *pending.front();
-    pending.pop();
+    Point& x = *pending.back();
+    pending.pop_back();
     x.origin = origin;
-    if (x.tree == Point::TREE_S) {
-      for (Point::NeighborSet::iterator i = x.to.begin();
-           i != x.to.end(); ++i) {
-        if ((*i)->parent == &x) pending.push(*i);
-      }
-    } else {
-      for (Point::NeighborSet::iterator i = x.from.begin();
-           i != x.from.end(); ++i) {
-       if ((*i)->parent == &x) pending.push(*i);
-      }
+    Point::NeighborSet& children = (T == Point::TREE_S)?x.to:x.from;
+    for (Point::NeighborSet::iterator i = children.begin();
+         i != children.end(); ++i) {
+      Point* temp = *i;
+      if (temp->parent == &x) pending.push_back(temp);
     }
   }
 }
@@ -183,7 +180,7 @@ static void adopt(FlowState& state) {
             getOrigin(&x) == &state.s) {
           p.parent = &x;
           p.tree = Point::TREE_S;
-          setOrigin(p, &state.s);
+          setOrigin<Point::TREE_S>(p, &state.s);
           return adopt(state);
         }
       }
@@ -213,7 +210,7 @@ static void adopt(FlowState& state) {
             getOrigin(&x) == &state.t) {
           p.parent = &x;
           p.tree = Point::TREE_T;
-          setOrigin(p, &state.t);
+          setOrigin<Point::TREE_T>(p, &state.t);
           return adopt(state);
         }
       }
@@ -262,11 +259,11 @@ static void augment(FlowState& state, Path& P) {
       if (x.flow == x.capacity && x.tree == y.tree) {
         if (x.tree == Point::TREE_S) {
           y.parent = NULL;
-          setOrigin(y, NULL);
+          setOrigin<Point::TREE_S>(y, NULL);
           addOrphan(state, &y);
         } else { // implied x.tree == Point::TREE_T
           x.parent = NULL;
-          setOrigin(x, NULL);
+          setOrigin<Point::TREE_T>(x, NULL);
           addOrphan(state, &x);
         }
       }
