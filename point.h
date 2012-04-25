@@ -26,6 +26,8 @@ public:
   Tree tree;
   bool active;
 
+  Point* origin;
+
   Point() : parent(NULL), capacity(0),
     flow(0), to(), from(), next(NULL), tree(TREE_NONE), active(false) {};
   Point(const Point& other) : parent(other.parent),

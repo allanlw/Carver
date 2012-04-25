@@ -5,12 +5,12 @@ DEBUG+=-march=native
 #OPT+=-O1
 OPT+=-O2
 #OPT+=-O3
-OPT+=-finline-functions
+#OPT+=-finline-functions
 #OPT+=-fno-inline-small-functions
 OPT+=-fshort-enums
 #OPT+=-funsafe-loop-optimizations -Wunsafe-loop-optimizations
 #OPT+=-fno-inline
-#OPT+=-fno-inline-functions-called-once 
+OPT+=-fno-inline-functions-called-once 
 OPT+=-funswitch-loops
 #OPT+=-fno-prefetch-loop-arrays
 #OPT+=-fpredictive-commoning

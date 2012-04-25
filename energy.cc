@@ -145,8 +145,29 @@ inline static unsigned short tree_cap(const Point& from, const Point& to) {
   }
 }
 
-inline static const Point* getOrigin(const Point* p) {
-  return (p->parent!=NULL)?getOrigin(p->parent):p;
+inline static Point* getOrigin(Point* p) {
+  return p->origin;
+}
+
+inline static void setOrigin(Point& p, Point* origin) {
+  queue<Point*, deque<Point*> > pending;
+  pending.push(&p);
+  while (!pending.empty()) {
+    Point& x = *pending.front();
+    pending.pop();
+    x.origin = origin;
+    if (x.tree == Point::TREE_S) {
+      for (Point::NeighborSet::iterator i=x.to.begin();
+           i != x.to.end(); ++i) {
+        if ((*i)->parent == &x) pending.push(*i);
+      }
+    } else {
+      for (Point::NeighborSet::iterator i = x.from.begin();
+           i != x.from.end(); ++i) {
+       if ((*i)->parent == &x) pending.push(*i);
+      }
+    }
+  }
 }
 
 static void adopt(FlowState& state) {
@@ -162,6 +183,7 @@ static void adopt(FlowState& state) {
             getOrigin(&x) == &state.s) {
           p.parent = &x;
           p.tree = Point::TREE_S;
+          setOrigin(p, &state.s);
           return adopt(state);
         }
       }
@@ -191,6 +213,7 @@ static void adopt(FlowState& state) {
             getOrigin(&x) == &state.t) {
           p.parent = &x;
           p.tree = Point::TREE_T;
+          setOrigin(p, &state.t);
           return adopt(state);
         }
       }
@@ -242,6 +265,7 @@ static void augment(FlowState& state, Path& P) {
           addOrphan(state, &y);
         } else { // implied x.tree == Point::TREE_T
           x.parent = NULL;
+          setOrigin(x, NULL);
           addOrphan(state, &x);
         }
       }
