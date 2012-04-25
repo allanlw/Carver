@@ -18,8 +18,6 @@ using namespace std;
 // faster than list
 typedef deque<Point*> Path;
 
-static deque<Point*> pending;
-
 inline static void addActive(FlowState& state, Point* p) {
   p->active = true;
   state.A.push(p);
@@ -139,101 +137,69 @@ inline static void getNeighbors(Point& p, FlowState& state,
   }
 }
 
+template <Point::Tree T>
 inline static unsigned short tree_cap(const Point& from, const Point& to) {
-  if (from.next == &to) {
+  if (T == Point::TREE_S && from.next == &to) {
     return from.capacity - from.flow;
+  } else if (T == Point::TREE_T && to.next == &from) {
+    return to.capacity - to.flow;
   } else {
     return 1;
   }
 }
 
 inline static Point* getOrigin(Point* p) {
-  return p->origin;
+  return (p->parent==NULL)?p:getOrigin(p->parent);
 }
 
 template <Point::Tree T>
-inline static void setOrigin(Point& p, Point* origin) {
-  pending.push_back(&p);
-  while (!pending.empty()) {
-    Point& x = *pending.back();
-    pending.pop_back();
-    x.origin = origin;
-    Point::NeighborSet& children = (T == Point::TREE_S)?x.to:x.from;
-    for (Point::NeighborSet::iterator i = children.begin();
-         i != children.end(); ++i) {
-      Point* temp = *i;
-      if (temp->parent == &x) pending.push_back(temp);
+inline static void do_adoption(FlowState& state, Point& p) {
+  Point::NeighborSet& parents = ((T==Point::TREE_S)?p.from:p.to);
+  Point::NeighborSet& children = ((T==Point::TREE_S)?p.to:p.from);
+  Point* origin = (T==Point::TREE_S)?&state.s:&state.t;
+
+  // look for a parent that flows into p
+  for(Point::NeighborSet::iterator i = parents.begin();
+      i != parents.end(); ++i) {
+    Point &x = **i;
+    if (x.tree == T && tree_cap<T>(x, p) &&
+        getOrigin(&x) == origin) {
+      p.parent = &x;
+      p.tree = T;
+      return;
     }
   }
+  // invalidate children
+  for (Point::NeighborSet::iterator i = children.begin();
+       i != children.end(); ++i) {
+    Point& x = **i;
+    if (x.parent == &p) {
+      x.parent = NULL;
+      addOrphan(state, &x);
+    }
+  }
+  // mark potential parents as active
+  for (Point::NeighborSet::iterator i = parents.begin();
+       i != parents.end(); ++i) {
+    Point& x = **i;
+    if (x.tree == T && tree_cap<T>(x, p)) {
+      addActive(state, &x);
+    }
+  }
+  p.tree = Point::TREE_NONE;
+  removeActive(state, &p);
 }
 
 static void adopt(FlowState& state) {
-  while (!state.O.empty()) {
+  if (!state.O.empty()) {
     Point& p = *getOrphan(state);
 
     if (p.tree == Point::TREE_S) {
-      // look for a parent that flows into p
-      for(Point::NeighborSet::iterator i = p.from.begin();
-          i != p.from.end(); ++i) {
-        Point &x = **i;
-        if (x.tree == Point::TREE_S && tree_cap(x, p) &&
-            getOrigin(&x) == &state.s) {
-          p.parent = &x;
-          p.tree = Point::TREE_S;
-          setOrigin<Point::TREE_S>(p, &state.s);
-          return adopt(state);
-        }
-      }
-      // invalidate children
-      for (Point::NeighborSet::iterator i = p.to.begin();
-           i != p.to.end(); ++i) {
-        Point& x = **i;
-        if (x.parent == &p) {
-          x.parent = NULL;
-          addOrphan(state, &x);
-        }
-      }
-      // mark potential parents as active
-      for (Point::NeighborSet::iterator i = p.from.begin();
-           i != p.from.end(); ++i) {
-        Point& x = **i;
-        if (x.tree == Point::TREE_S && tree_cap(x, p)) {
-          addActive(state, &x);
-        }
-      }
+      do_adoption<Point::TREE_S>(state, p);
     } else {
-      // look for a parent that p flows into
-      for(Point::NeighborSet::iterator i = p.to.begin();
-          i != p.to.end(); ++i) {
-        Point &x = **i;
-        if (x.tree == Point::TREE_T && tree_cap(p, x) &&
-            getOrigin(&x) == &state.t) {
-          p.parent = &x;
-          p.tree = Point::TREE_T;
-          setOrigin<Point::TREE_T>(p, &state.t);
-          return adopt(state);
-        }
-      }
-      // invalidate children
-      for (Point::NeighborSet::iterator i = p.from.begin();
-           i != p.from.end(); ++i) {
-        Point& x = **i;
-        if (x.parent == &p) {
-          x.parent = NULL;
-          addOrphan(state, &x);
-        }
-      }
-      // mark potential parents as active
-      for (Point::NeighborSet::iterator i = p.to.begin();
-           i != p.to.end(); ++i) {
-        Point& x = **i;
-        if (x.tree == Point::TREE_T && tree_cap(p, x)) {
-          addActive(state, &x);
-        }
-      }
+      do_adoption<Point::TREE_T>(state, p);
     }
-    p.tree = Point::TREE_NONE;
-    removeActive(state, &p);
+    return adopt(state);
   }
 }
 
@@ -259,11 +225,9 @@ static void augment(FlowState& state, Path& P) {
       if (x.flow == x.capacity && x.tree == y.tree) {
         if (x.tree == Point::TREE_S) {
           y.parent = NULL;
-          setOrigin<Point::TREE_S>(y, NULL);
           addOrphan(state, &y);
         } else { // implied x.tree == Point::TREE_T
           x.parent = NULL;
-          setOrigin<Point::TREE_T>(x, NULL);
           addOrphan(state, &x);
         }
       }
@@ -271,55 +235,52 @@ static void augment(FlowState& state, Path& P) {
   }
 }
 
-static Path* getPath(Point& a, Point& b) {
+template<Point::Tree T>
+inline static Path* getPath(Point& a, Point& b) {
   Path* result = new Path;
   Path& path = *result;
-  for(Point* x = &a; x != NULL; x = x->parent) {
+  for(Point* x = (T==Point::TREE_S)?&a:&b; x != NULL; x = x->parent) {
     path.push_front(x);
   }
-  for(Point* x = &b; x != NULL; x = x->parent) {
+  for(Point* x = (T==Point::TREE_S)?&b:&a; x != NULL; x = x->parent) {
     path.push_back(x);
   }
   return result;
 }
 
-static Path* grow(FlowState& state) {
-  while (!state.A.empty()) {
-    Point& p = *getActive(state);
-    // manually unswitched loop
-    if (p.tree == Point::TREE_S) {
-      for (Point::NeighborSet::iterator i = p.to.begin();
-           i != p.to.end(); ++i) {
-        Point& x = **i;
-        if (x.tree == Point::TREE_S || !tree_cap(p, x)) {
-          continue;
-        } else if (x.tree != Point::TREE_NONE) { // (*i)->tree != p->tree
-          return getPath(p, x);
-        } else {
-          x.parent = &p;
-          x.origin = &state.s;
-          x.tree = Point::TREE_S;
-          addActive(state, &x);
-        }
-      }
+template<Point::Tree T>
+inline static Path* do_grow(FlowState& state, Point& p) {
+  Point::NeighborSet& children = (T==Point::TREE_S)?p.to:p.from;
+  for (Point::NeighborSet::iterator i = children.begin();
+       i != children.end(); ++i) {
+    Point& x = **i;
+    if (x.tree == T || !tree_cap<T>(p, x)) {
+      continue;
+    } else if (x.tree != Point::TREE_NONE) { // (*i)->tree != p->tree
+      return getPath<T>(p, x);
     } else {
-      for (Point::NeighborSet::iterator i = p.from.begin();
-           i != p.from.end(); ++i) {
-        Point& x = **i;
-        if (x.tree == Point::TREE_T || !tree_cap(x, p)) {
-          continue;
-        } else if (x.tree != Point::TREE_NONE) { // (*i)->tree != p->tree
-          return getPath(x, p);
-        } else {
-          x.parent = &p;
-          x.origin = &state.t;
-          x.tree = Point::TREE_T;
-          addActive(state, &x);
-        }
-      }
+      x.parent = &p;
+      x.tree = T;
+      addActive(state, &x);
     }
   }
   return NULL;
+}
+
+static Path* grow(FlowState& state) {
+  if (state.A.empty()) return NULL;
+
+  Point& p = *getActive(state);
+  Path* result;
+  if (p.tree==Point::TREE_S) {
+    result = do_grow<Point::TREE_S>(state, p);
+  } else {
+    result = do_grow<Point::TREE_T>(state, p);
+  }
+  if (result)
+    return result;
+  else
+    return grow(state);
 }
 
 FlowState* getBestFlow(const Frame<unsigned char>& frame,
