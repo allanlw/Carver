@@ -18,6 +18,8 @@ OPT+=-funswitch-loops
 #OPT+=-ftree-vectorize
 #OPT+=-fipa-cp-clone
 OPT+=-fno-exceptions
+#OPT+=-ftree-parallelize-loops
+OPT+=-fopenmp
 
 CCFLAGS=-std=c++0x -Wall -Wextra $(OPT) $(DEBUG)
 

@@ -152,28 +152,29 @@ inline static bool is_closer(const Point& p, const Point& q) {
   return q.time <= p.time && q.dist > p.dist;
 }
 
-inline static void setDists(FlowState& state, Point* p, size_t i) {
+inline static void setDists(Point* p, size_t time, size_t i) {
+  if (p->time == time) return;
   p->dist = i;
-  p->time = state.time;
-  if (p->parent && p->parent->time != state.time) {
-    return setDists(state, p->parent, i-1);
+  p->time = time;
+  if (p->parent) {
+    return setDists(p->parent, time, i-1);
   }
 }
 
-inline static size_t walkOrigin(FlowState& state, Point* p, size_t i = 0) {
-  if (p->time == state.time) {
+inline static size_t walkOrigin(Point* p, size_t time, size_t i = 0) {
+  if (p->time == time) {
     return p->dist + i;
   } else if (p->parent == NULL) {
     return ~0;
   } else {
-    return walkOrigin(state, p->parent, i+1);
+    return walkOrigin(p->parent, time, i+1);
   }
 }
 
 inline static size_t getOrigin(FlowState& state, Point* p) {
-  size_t dist = walkOrigin(state, p);
+  size_t dist = walkOrigin(p, state.time);
   if (dist != ~0) {
-    setDists(state, p, dist);
+    setDists(p, state.time, dist);
   }
   return dist;
 }
@@ -367,9 +368,11 @@ FlowState* getBestFlow(const Frame<unsigned char>& frame,
     if (P == NULL) {
       return state;
     }
+
     state->time += 1;
     state->s.time = state->time;
     state->t.time = state->time;
+
     augment(*state, *P);
     delete P;
     adopt(*state);
