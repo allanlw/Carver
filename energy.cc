@@ -148,26 +148,58 @@ inline static unsigned short tree_cap(const Point& from, const Point& to) {
   }
 }
 
-inline static Point* getOrigin(Point* p) {
-  return (p->parent==NULL)?p:getOrigin(p->parent);
+inline static bool is_closer(const Point& p, const Point& q) {
+  return q.time <= p.time && q.dist > p.dist;
+}
+
+inline static void setDists(FlowState& state, Point* p, size_t i) {
+  p->dist = i;
+  p->time = state.time;
+  if (p->parent && p->parent->time != state.time) {
+    return setDists(state, p->parent, i-1);
+  }
+}
+
+inline static size_t walkOrigin(FlowState& state, Point* p, size_t i = 0) {
+  if (p->time == state.time) {
+    return p->dist + i;
+  } else if (p->parent == NULL) {
+    return ~0;
+  } else {
+    return walkOrigin(state, p->parent, i+1);
+  }
+}
+
+inline static size_t getOrigin(FlowState& state, Point* p) {
+  size_t dist = walkOrigin(state, p);
+  if (dist != ~0) {
+    setDists(state, p, dist);
+  }
+  return dist;
 }
 
 template <Point::Tree T>
 inline static void do_adoption(FlowState& state, Point& p) {
   Point::NeighborSet& parents = ((T==Point::TREE_S)?p.from:p.to);
   Point::NeighborSet& children = ((T==Point::TREE_S)?p.to:p.from);
-  Point* origin = (T==Point::TREE_S)?&state.s:&state.t;
 
+  Point* bestNewParent = NULL;
   // look for a parent that flows into p
   for(Point::NeighborSet::iterator i = parents.begin();
       i != parents.end(); ++i) {
     Point &x = **i;
-    if (x.tree == T && tree_cap<T>(x, p) &&
-        getOrigin(&x) == origin) {
-      p.parent = &x;
-      p.tree = T;
-      return;
+    if (x.tree == T && tree_cap<T>(x, p)) {
+      size_t t = getOrigin(state, &x);
+      if (t != ~0 && (bestNewParent == NULL || t < bestNewParent->dist)) {
+        bestNewParent = &x;
+      }
     }
+  }
+  if (bestNewParent != NULL) {
+    p.parent = bestNewParent;
+    p.dist = bestNewParent->dist + 1;
+    p.time = state.time;
+    return;
   }
   // invalidate children
   for (Point::NeighborSet::iterator i = children.begin();
@@ -239,10 +271,10 @@ template<Point::Tree T>
 inline static Path* getPath(Point& a, Point& b) {
   Path* result = new Path;
   Path& path = *result;
-  for(Point* x = (T==Point::TREE_S)?&a:&b; x != NULL; x = x->parent) {
+  for(Point* x = (T==Point::TREE_S)?(&a):(&b); x != NULL; x = x->parent) {
     path.push_front(x);
   }
-  for(Point* x = (T==Point::TREE_S)?&b:&a; x != NULL; x = x->parent) {
+  for(Point* x = (T==Point::TREE_S)?(&b):(&a); x != NULL; x = x->parent) {
     path.push_back(x);
   }
   return result;
@@ -254,14 +286,26 @@ inline static Path* do_grow(FlowState& state, Point& p) {
   for (Point::NeighborSet::iterator i = children.begin();
        i != children.end(); ++i) {
     Point& x = **i;
-    if (x.tree == T || !tree_cap<T>(p, x)) {
+    if (!tree_cap<T>(p, x)) {
       continue;
-    } else if (x.tree != Point::TREE_NONE) { // (*i)->tree != p->tree
-      return getPath<T>(p, x);
-    } else {
+    }
+    switch(x.tree) {
+    case Point::TREE_NONE:
       x.parent = &p;
       x.tree = T;
+      x.dist = p.dist + 1;
+      x.time = p.time;
       addActive(state, &x);
+      break;
+    case T:
+      if (is_closer(p, x)) {
+        x.parent = &p;
+        x.dist = p.dist + 1;
+        x.time = p.time;
+      }
+      break;
+    default:
+      return getPath<T>(p, x);
     }
   }
   return NULL;
@@ -277,7 +321,7 @@ static Path* grow(FlowState& state) {
   } else {
     result = do_grow<Point::TREE_T>(state, p);
   }
-  if (result)
+  if (result != NULL)
     return result;
   else
     return grow(state);
@@ -291,6 +335,10 @@ FlowState* getBestFlow(const Frame<unsigned char>& frame,
 
   state->s.tree = Point::TREE_S;
   state->t.tree = Point::TREE_T;
+
+  state->s.dist = state->t.dist = 0;
+
+  state->time = state->s.time = state->t.time = 1;
 
   state->points.resize(frame.h * frame.w);
 
@@ -319,6 +367,9 @@ FlowState* getBestFlow(const Frame<unsigned char>& frame,
     if (P == NULL) {
       return state;
     }
+    state->time += 1;
+    state->s.time = state->time;
+    state->t.time = state->time;
     augment(*state, *P);
     delete P;
     adopt(*state);

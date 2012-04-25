@@ -26,14 +26,16 @@ public:
   Tree tree;
   bool active;
 
-  Point* origin;
+  std::size_t dist;
+  std::size_t time;
 
   Point() : parent(NULL), capacity(0),
-    flow(0), to(), from(), next(NULL), tree(TREE_NONE), active(false) {};
+    flow(0), to(), from(), next(NULL), tree(TREE_NONE),
+    active(false), dist(0), time(0) {};
   Point(const Point& other) : parent(other.parent),
     capacity(other.capacity), flow(other.flow), to(other.to),
     from(other.from), next(other.next), tree(other.tree),
-    active(other.active) {};
+    active(other.active), dist(other.dist), time(other.time) {};
   Point& operator=(const Point& other) {
     if (&other != this) {
       this->parent = other.parent;
@@ -44,6 +46,8 @@ public:
       this->next = other.next;
       this->tree = other.tree;
       this->active = other.active;
+      this->dist = other.dist;
+      this->time = other.time;
     }
     return *this;
   }

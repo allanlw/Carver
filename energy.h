@@ -26,6 +26,8 @@ public:
   // potential (small) speedup from using a vector with a large reserved size.
   typedef std::stack<Point*, std::deque<Point*> > OrphanSet;
 
+  std::size_t time;
+
   PointsSet points;
 
   ActiveSet A;
