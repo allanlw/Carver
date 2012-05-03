@@ -155,29 +155,29 @@ static bool is_closer(const Point& p, const Point& q) {
   return q.time <= p.time && q.dist > p.dist;
 }
 
-static void setDists(Point* p, FlowState::DistType i,
+static void setDists(Point& p, FlowState::DistType i,
                      FlowState::TimeType time) {
-  if (p->time == time) return;
-  p->dist = i;
-  p->time = time;
-  if (p->parent != NULL) {
-    return setDists(p->parent, i-1, time);
+  if (p.time == time) return;
+  p.dist = i;
+  p.time = time;
+  if (p.parent != NULL) {
+    return setDists(*p.parent, i-1, time);
   }
 }
 
-static FlowState::DistType walkOrigin(const Point* p, FlowState::DistType i,
+static FlowState::DistType walkOrigin(const Point& p, FlowState::DistType i,
                                       FlowState::TimeType time) {
-  if (p->time == time) {
-    return p->dist + i;
-  } else if (p->parent == NULL) {
+  if (p.time == time) {
+    return p.dist + i;
+  } else if (p.parent == NULL) {
     return (FlowState::DistType) ~0;
   } else {
-    return walkOrigin(p->parent, i+1, time);
+    return walkOrigin(*p.parent, i+1, time);
   }
 }
 
 static FlowState::DistType getOrigin(const FlowState& state,
-                                     Point* p) {
+                                     Point& p) {
   FlowState::DistType dist = walkOrigin(p, 0, state.time);
   if (dist != (FlowState::DistType)~0) {
     setDists(p, dist, state.time);
@@ -198,7 +198,7 @@ static void do_adoption(FlowState& state, Point& p) {
       i != parents.end(); ++i) {
     Point &x = **i;
     if (x.tree == T && tree_cap<T>(x, p)) {
-      FlowState::DistType t = getOrigin(state, &x);
+      FlowState::DistType t = getOrigin(state, x);
       if (t != (FlowState::DistType) ~0 && t <= dist) {
         parent = &x;
         dist = x.dist + 1;
