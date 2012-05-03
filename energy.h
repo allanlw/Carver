@@ -49,8 +49,6 @@ public:
   FlowState(const Frame<PixelValue>& frame) : frame(frame) {}
 };
 
-#include "point.h"
-
 FlowState* getBestFlow(const Frame<PixelValue>& frame,
                        FlowDirection direction);
 
