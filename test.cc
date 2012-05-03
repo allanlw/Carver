@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
   current = inputImage;
 
   for (size_t i = 0; i < carves; i++) {
-    Frame<unsigned char>* diffF = getDifferential(*current);
+    Frame<PixelValue>* diffF = getDifferential(*current);
 
     cout << "Calculating best flow...\n";
     FlowState* s = getBestFlow(*diffF, FLOW_LEFT_RIGHT);

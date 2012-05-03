@@ -32,8 +32,8 @@ string getMagic(std::istream& is) {
   return res;
 }
 
-Frame<unsigned char>* loadPgm(std::istream& is) {
-  Frame<unsigned char>* r = new Frame<unsigned char>();
+Frame<PixelValue>* loadPgm(std::istream& is) {
+  Frame<PixelValue>* r = new Frame<PixelValue>();
 
   r->w = 0;
   r->h = 0;
@@ -160,12 +160,12 @@ Frame<RgbPixel>* loadPpm(std::istream& is) {
   return r;
 }
 
-void printPgm(const Frame<unsigned char>& f, ostream& os, bool binary) {
+void printPgm(const Frame<PixelValue>& f, ostream& os, bool binary) {
   os << (binary?"P5":"P2")<<"\n";
   os << f.w << " " << f.h << "\n";
   os << 255 << "\n";
   size_t j = 0;
-  for (Frame<unsigned char>::ValuesSet::const_iterator i = f.values.begin();
+  for (Frame<PixelValue>::ValuesSet::const_iterator i = f.values.begin();
        i != f.values.end(); ++i) {
     if (!binary) {
       os << (unsigned int)*i << " ";
@@ -212,7 +212,7 @@ void printPnm(const Frame<RgbPixel>& f, ostream& os, bool binary) {
   printPpm(f, os, binary);
 }
 
-void printPnm(const Frame<unsigned char>& f, ostream& os, bool binary) {
+void printPnm(const Frame<PixelValue>& f, ostream& os, bool binary) {
   printPgm(f, os, binary);
 }
 

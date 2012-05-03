@@ -11,21 +11,21 @@ OPT+=-O2
 #OPT+=-funsafe-loop-optimizations -Wunsafe-loop-optimizations
 #OPT+=-fno-inline
 #OPT+=-fno-inline-functions-called-once 
-#OPT+=-funswitch-loops
+OPT+=-funswitch-loops
 #OPT+=-fno-prefetch-loop-arrays
 #OPT+=-fpredictive-commoning
 #OPT+=-fgcse-after-reload
 #OPT+=-ftree-vectorize
 #OPT+=-fipa-cp-clone
-#OPT+=-fno-exceptions
+OPT+=-fno-exceptions
 #OPT+=-ftree-parallelize-loops
 #OPT+=-fopenmp
 #OPT+=-fpack-struct -Wpacked
 
 CCFLAGS=-Wall -Wextra $(OPT) $(DEBUG)
-#CCFLAGS+=-std=c++0x
+CCFLAGS+=-std=c++0x
 
-INTERACTIVEFLAGS:=`pkg-config gtkmm-3.0 --libs --cflags`
+INTERACTIVEFLAGS:=$(shell pkg-config gtkmm-3.0 --libs --cflags)
 
 CCFILES=energy.cc frame.cc test.cc diff.cc interactive.cc
 OFILES:=$(filter-out interactive.o, $(patsubst %.cc,%.o,$(CCFILES)))

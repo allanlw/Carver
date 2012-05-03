@@ -6,8 +6,11 @@
 #include <istream>
 #include <ostream>
 #include <string>
+#include <cstdint>
 
 #define _BINARY_DEFAULT true
+
+typedef std::uint8_t PixelValue;
 
 template<typename T> struct Frame {
   typedef std::vector<T> ValuesSet;
@@ -15,12 +18,30 @@ template<typename T> struct Frame {
   std::size_t w;
   std::size_t h;
   ValuesSet values;
+
+  Frame<T>& operator=(const Frame<T>& other) {
+    if (this != &other) {
+      this->w = other.w;
+      this->h = other.h;
+      this->values = other.values;
+    }
+    return *this;
+  }
 };
 
 struct RgbPixel {
-  unsigned char r, g, b;
+  PixelValue r, g, b;
 
   RgbPixel() : r(0), g(0), b(0) { }
+
+  RgbPixel& operator=(const RgbPixel& b) {
+    if (this != &b) {
+      this->r = b.r;
+      this->g = b.g;
+      this->b = b.b;
+    }
+    return *this;
+  }
 
   RgbPixel& operator^=(const RgbPixel& b) {
     this->r ^= b.r;
@@ -34,16 +55,26 @@ struct FrameWrapper {
   bool color;
   union {
     Frame<RgbPixel>* colorFrame;
-    Frame<unsigned char>* greyFrame;
+    Frame<PixelValue>* greyFrame;
   };
 
   FrameWrapper() : color(true) { }
+
+  FrameWrapper(const FrameWrapper& frame) : color(frame.color) {
+    if (color) {
+      colorFrame = new Frame<RgbPixel>;
+      *colorFrame = *frame.colorFrame;
+    } else {
+      greyFrame = new Frame<PixelValue>;
+      *greyFrame = *frame.greyFrame;
+    }
+  }
 
   FrameWrapper(bool color) : color(color) {
     if (color) {
       colorFrame = new Frame<RgbPixel>;
     } else {
-      greyFrame = new Frame<unsigned char>;
+      greyFrame = new Frame<PixelValue>;
     }
   }
 
@@ -78,18 +109,18 @@ struct FrameWrapper {
 
 std::string getMagic(std::istream& is);
 
-Frame<unsigned char>* loadPgm(std::istream& is);
+Frame<PixelValue>* loadPgm(std::istream& is);
 Frame<RgbPixel>* loadPpm(std::istream& is);
 FrameWrapper* loadPnm(std::istream& is);
 
-void printPgm(const Frame<unsigned char>& f, std::ostream& os,
+void printPgm(const Frame<PixelValue>& f, std::ostream& os,
               bool binary=_BINARY_DEFAULT);
 void printPpm(const Frame<RgbPixel>& f, std::ostream& os,
               bool binary=_BINARY_DEFAULT);
 
 void printPnm(const Frame<RgbPixel>& img, std::ostream& out,
               bool binary=_BINARY_DEFAULT);
-void printPnm(const Frame<unsigned char>& img, std::ostream& out,
+void printPnm(const Frame<PixelValue>& img, std::ostream& out,
               bool binary=_BINARY_DEFAULT);
 void printPnm(const FrameWrapper& img, std::ostream& out,
               bool binary=_BINARY_DEFAULT);

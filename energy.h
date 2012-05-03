@@ -44,14 +44,14 @@ public:
   Point t;
 
   FlowDirection direction;
-  const Frame<unsigned char>& frame;
+  const Frame<PixelValue>& frame;
 
-  FlowState(const Frame<unsigned char>& frame) : frame(frame) {}
+  FlowState(const Frame<PixelValue>& frame) : frame(frame) {}
 };
 
 #include "point.h"
 
-FlowState* getBestFlow(const Frame<unsigned char>& frame,
+FlowState* getBestFlow(const Frame<PixelValue>& frame,
                        FlowDirection direction);
 
 FrameWrapper* cutFrame(FlowState& state, const FrameWrapper& subject,

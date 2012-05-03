@@ -21,6 +21,10 @@ typedef deque<Point*> Path;
 
 // Best parent is an improvement in speed
 static const bool best_parent = true;
+// Use the heuristic algorithm
+static const bool use_heuristic = true;
+// Reassign parents (requires heuristic)
+static const bool reassign_parents = true;
 
 static void addActive(FlowState& state, Point* p) {
   p->active = true;
@@ -28,6 +32,7 @@ static void addActive(FlowState& state, Point* p) {
 }
 
 static Point* getActive(FlowState& state) {
+  if (state.A.empty()) return NULL;
   Point* result = state.A.front();
   state.A.pop();
   if (result->active) {
@@ -42,6 +47,7 @@ static void removeActive(FlowState& state, Point* p) {
 }
 
 static void addOrphan(FlowState& state, Point* p) {
+  p->parent = NULL;
   state.O.push(p);
 }
 
@@ -59,7 +65,7 @@ static size_t getOff(const FlowState& state, size_t x, size_t y) {
    when into=true, first link is the one that is limited*/
 template<bool into, FlowDirection direction>
 static void getNeighbors(Point& p, FlowState& state,
-                                size_t x = 0, size_t y = 0) {
+                         size_t x = 0, size_t y = 0) {
   Point::NeighborSet& result = (into?p.to:p.from);
   if (&p != &state.s && &p != &state.t) {
     result.reserve(4);
@@ -148,7 +154,7 @@ static Point::EnergyType tree_cap(const Point& from, const Point& to) {
   } else if (T == Point::TREE_T && to.next == &from) {
     return to.capacity - to.flow;
   } else {
-    return 1;
+    return (Point::EnergyType)~0;
   }
 }
 
@@ -177,10 +183,11 @@ static FlowState::DistType walkOrigin(const Point& p, FlowState::DistType i,
   }
 }
 
+/* Returns the distance from a terminal, ~0 if not connected */
 static FlowState::DistType getOrigin(const FlowState& state,
                                      Point& p) {
   FlowState::DistType dist = walkOrigin(p, 0, state.time);
-  if (dist != (FlowState::DistType)~0) {
+  if (dist != (FlowState::DistType)~0 && use_heuristic) {
     setDists(p, dist, state.time);
   }
   return dist;
@@ -200,9 +207,9 @@ static void do_adoption(FlowState& state, Point& p) {
     Point &x = **i;
     if (x.tree == T && tree_cap<T>(x, p)) {
       FlowState::DistType t = getOrigin(state, x);
-      if (t != (FlowState::DistType) ~0 && t <= dist) {
+      if (t != (FlowState::DistType)~0 && t < dist) {
         parent = &x;
-        dist = x.dist + 1;
+        dist = t;
         if (!best_parent)
           break;
       }
@@ -210,16 +217,14 @@ static void do_adoption(FlowState& state, Point& p) {
   }
   if (parent != NULL) {
     p.parent = parent;
-    p.dist = dist;
+    p.dist = dist + 1;
     p.time = state.time;
-    return;
   } else {
     // invalidate children
     for (Point::NeighborSet::iterator i = children.begin();
          i != children.end(); ++i) {
       Point& x = **i;
       if (x.parent == &p) {
-        x.parent = NULL;
         addOrphan(state, &x);
       }
     }
@@ -265,18 +270,12 @@ static void augment(FlowState& state, Path& P) {
     Point& x = **i;
     Point& y = **j;
     x.flow += bottleneck;
-    if (i == P.begin() || j == P.end()) {
-      x.flow += bottleneck;
-    } else if (x.next == &y) {
-      x.flow += bottleneck;
-      if (x.flow == x.capacity && x.tree == y.tree) {
-        if (x.tree == Point::TREE_S) {
-          y.parent = NULL;
-          addOrphan(state, &y);
-        } else { // implied x.tree == Point::TREE_T
-          x.parent = NULL;
-          addOrphan(state, &x);
-        }
+    if (i != P.begin() && x.next == &y &&
+        x.flow >= x.capacity && x.tree == y.tree) {
+      if (x.tree == Point::TREE_S) {
+        addOrphan(state, &y);
+      } else { // implied x.tree == Point::TREE_T
+        addOrphan(state, &x);
       }
     }
   }
@@ -313,7 +312,7 @@ static Path* do_grow(FlowState& state, Point& p) {
       addActive(state, &x);
       break;
     case T:
-      if (is_closer(p, x)) {
+      if (reassign_parents && use_heuristic && is_closer(p, x)) {
         x.parent = &p;
         x.dist = p.dist + 1;
         x.time = p.time;
@@ -327,9 +326,10 @@ static Path* do_grow(FlowState& state, Point& p) {
 }
 
 static Path* grow(FlowState& state) {
-  if (state.A.empty()) return NULL;
+  Point* t = getActive(state);
+  if (t == NULL) return NULL;
+  Point& p = *t;
 
-  Point& p = *getActive(state);
   Path* result;
   if (p.tree==Point::TREE_S) {
     result = do_grow<Point::TREE_S>(state, p);
@@ -344,7 +344,7 @@ static Path* grow(FlowState& state) {
 
 template<FlowDirection direction>
 static void buildGraph(FlowState& state) {
-  const Frame<unsigned char>& frame = state.frame;
+  const Frame<PixelValue>& frame = state.frame;
   for(size_t y = 0; y < frame.h; y++) {
     for(size_t x = 0; x < frame.w; x++) {
       size_t o = getOff(state,x,y);
@@ -363,7 +363,7 @@ static void buildGraph(FlowState& state) {
   getNeighbors<false, direction>(state.t, state);
 }
 
-FlowState* getBestFlow(const Frame<unsigned char>& frame,
+FlowState* getBestFlow(const Frame<PixelValue>& frame,
                        FlowDirection direction) {
   FlowState* state = new FlowState(frame);
 
@@ -434,14 +434,18 @@ FrameWrapper* cutFrame(FlowState& state, const FrameWrapper& subject,
 
   for(size_t i = 0; i < state.points.size(); i++) {
     std::size_t x = i % subject.getWidth(), y = i / subject.getWidth();
-    std::size_t tox = -1, toy = -1;
-    if (state.points[i].tree == Point::TREE_T) {
+    std::size_t tox, toy;
+    if (state.points[i].tree == Point::TREE_T ||
+        state.points[i].tree == Point::TREE_NONE) {
       if (state.direction == FLOW_LEFT_RIGHT && x > 0) {
         tox = x - 1;
         toy = y;
       } else if (state.direction == FLOW_TOP_BOTTOM && y > 0) {
         tox = x;
         toy = y - 1;
+      } else {
+        tox = x;
+        toy = y;
       }
     } else {
       tox = x;
