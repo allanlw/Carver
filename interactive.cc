@@ -3,11 +3,15 @@
 #include <string>
 
 #include "frame.h"
+#include "energy.h"
+#include "diff.h"
 
 using namespace std;
 
 const static char* app_id = "com.allanwirth.carver";
 const static char* window_title = "Image Carver";
+const static char* button_h_label = "Shrink Horizontal";
+const static char* button_v_label = "Shrink Vertical";
 
 static Glib::RefPtr<Gdk::Pixbuf> pixbuf_from_frame (FrameWrapper* frame) {
   if (frame->color) {
@@ -17,8 +21,11 @@ static Glib::RefPtr<Gdk::Pixbuf> pixbuf_from_frame (FrameWrapper* frame) {
     Glib::RefPtr<Gdk::Pixbuf> result = Gdk::Pixbuf::create(Gdk::COLORSPACE_RGB,
       false, 8, f->w, f->h);
     guint8* pixels = result->get_pixels();
-    for (size_t i = 0; i < f->w * f->h; i++) {
-      pixels[i*3] = pixels[i*3 + 1] = pixels[i*3 + 2] = f->values[i];
+    for (size_t y = 0; y < f->h; y++) {
+      for (size_t x = 0; x < f->w; x++) {
+        size_t i = y * result->get_rowstride() + (x * 3);
+        pixels[i] = pixels[i + 1] = pixels[i + 2] = f->values[x + y * f->w];
+      }
     }
     return result;
   }
@@ -26,8 +33,8 @@ static Glib::RefPtr<Gdk::Pixbuf> pixbuf_from_frame (FrameWrapper* frame) {
 
 class ImageCarver : public Gtk::Window {
 public:
-  ImageCarver(FrameWrapper* frame) : _buttonH("Shrink Horizontal"),
-    _buttonV("Shrink Vertical"), _originalFrame(frame), _currentFrame(frame) {
+  ImageCarver(FrameWrapper* frame) : _buttonH(button_h_label),
+    _buttonV(button_v_label), _originalFrame(frame), _currentFrame(frame) {
     set_title(window_title);
     set_border_width(10);
     add(_mainBox);
@@ -39,7 +46,11 @@ public:
     _mainBox.pack_end(_buttonBox, false, false);
 
     _buttonBox.pack_start(_buttonH);
+    _buttonH.signal_clicked().connect(sigc::mem_fun(*this,
+      &ImageCarver::button_h_clicked));
     _buttonBox.pack_start(_buttonV);
+    _buttonV.signal_clicked().connect(sigc::mem_fun(*this,
+      &ImageCarver::button_v_clicked));
 
     _mainBox.show_all();
 
@@ -49,6 +60,26 @@ public:
 
   void update() {
     _image.set(pixbuf_from_frame(_currentFrame));
+  }
+
+  void button_h_clicked() {
+    do_carve(FLOW_LEFT_RIGHT);
+  }
+
+  void button_v_clicked() {
+    do_carve(FLOW_TOP_BOTTOM);
+  }
+
+  void do_carve(FlowDirection direction) {
+    Frame<unsigned char>* energy = getDifferential(*_currentFrame);
+    FlowState* state = getBestFlow(*energy, direction);
+    FrameWrapper* temp = cutFrame(*state, *_currentFrame, NULL);
+    if (_currentFrame != _originalFrame)
+      delete _currentFrame;
+    _currentFrame = temp;
+    delete state;
+    delete energy;
+    update();
   }
 
 protected:
