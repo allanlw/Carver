@@ -5,27 +5,47 @@
 using namespace std;
 
 Frame<PixelValue>* getDifferential(const Frame<PixelValue>& frame) {
-  Frame<PixelValue>* result = new Frame<PixelValue>();
-  result->w = frame.w;
-  result->h = frame.h;
-  result->values.reserve(frame.w * frame.h);
+  Frame<PixelValue>* result = new Frame<PixelValue>(frame.w, frame.h);
   for (size_t y = 0; y < frame.h; y++) {
     for (size_t x = 0; x < frame.w; x++) {
       if (x == frame.w-1 || y == frame.h-1) {
-        result->values.push_back(255);
+        result->values[x + y * frame.w] = 0xff;
       } else {
         int v = abs(frame.values[(x+1)+frame.w*y] -
                     frame.values[x+frame.w*y]) +
                 abs(frame.values[x+frame.w*(y+1)] -
                     frame.values[x+frame.w*y]);
-        result->values.push_back(v);
+        result->values[x + y * frame.w] = (PixelValue)v;
       }
     }
   }
   return result;
 }
+
 Frame<PixelValue>* getDifferential(const Frame<RgbPixel>& frame) {
-  return NULL;
+  Frame<PixelValue>* result = new Frame<PixelValue>(frame.w, frame.h);
+  for (size_t y = 0; y < frame.h; y++) {
+    for (size_t x = 0; x < frame.w; x++) {
+      if (x == frame.w-1 || y == frame.h-1) {
+        result->values[x + y * frame.w] = 0xff;
+      } else {
+        int rv = abs(frame.values[(x+1)+frame.w*y].r -
+                     frame.values[x+frame.w*y].r) +
+                 abs(frame.values[x+frame.w*(y+1)].r -
+                     frame.values[x+frame.w*y].r);
+        int gv = abs(frame.values[(x+1)+frame.w*y].g -
+                     frame.values[x+frame.w*y].g) +
+                 abs(frame.values[x+frame.w*(y+1)].g -
+                     frame.values[x+frame.w*y].g);
+        int bv = abs(frame.values[(x+1)+frame.w*y].b -
+                     frame.values[x+frame.w*y].b) +
+                 abs(frame.values[x+frame.w*(y+1)].b -
+                     frame.values[x+frame.w*y].b);
+        result->values[x + y * frame.w] = (PixelValue)max(rv, max(gv, bv));
+      }
+    }
+  }
+  return result;
 }
 
 Frame<PixelValue>* getDifferential(const FrameWrapper& frame) {
@@ -74,7 +94,7 @@ void togglePixel(Frame<RgbPixel>& frame, std::size_t x, std::size_t y) {
   one.r = 0xff;
   one.g = 0xff;
   one.b = 0xff;
-  frame.values[x + frame.h * y] ^= one;
+  frame.values[x + frame.w * y] ^= one;
 }
 
 void togglePixel(FrameWrapper& frame, std::size_t x, std::size_t y) {

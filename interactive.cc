@@ -90,7 +90,7 @@ public:
   }
 
   void do_carve(FlowDirection direction) {
-    Frame<unsigned char>* energy = getDifferential(*_currentFrame);
+    Frame<PixelValue>* energy = getDifferential(*_currentFrame);
     FlowState* state = getBestFlow(*energy, direction);
     FrameWrapper* tempCut = new FrameWrapper(_currentFrame->color);
     tempCut->setSize(_currentFrame->getWidth(),

@@ -19,6 +19,11 @@ template<typename T> struct Frame {
   std::size_t h;
   ValuesSet values;
 
+  Frame() {}
+  Frame(std::size_t w, std::size_t h) : w(w), h(h) {
+    values.resize(w * h);
+  }
+
   Frame<T>& operator=(const Frame<T>& other) {
     if (this != &other) {
       this->w = other.w;
