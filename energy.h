@@ -54,56 +54,7 @@ public:
 FlowState* getBestFlow(const Frame<unsigned char>& frame,
                        FlowDirection direction);
 
-template<typename T>
-Frame<T>* cutFrame(FlowState& state, const Frame<T>& subject,
-                   Frame<T>* cut) {
-  if (subject.w != state.frame.w || subject.h != state.frame.h ||
-      (cut != NULL && (cut->w != subject.w || cut->h != subject.h))) {
-    return NULL;
-  }
-
-  Frame<T>* result = new Frame<T>();
-  if (state.direction == FLOW_LEFT_RIGHT) {
-    result->w = subject.w-1;
-    result->h = subject.h;
-  } else {
-    result->w = subject.w;
-    result->h = subject.h-1;
-  }
-
-  if (cut != NULL) {
-    T nil;
-    memset(&nil, 0x00, sizeof(T));
-    for (std::size_t x = 0; x < cut->w * cut->h; x++) {
-      cut->values[x] = nil;
-    }
-  }
-
-  T one;
-  memset(&one, 0xff, sizeof(T));
-
-  result->values.resize(result->w*result->h);
-  for(size_t i = 0; i < state.points.size(); i++) {
-    std::size_t x = i % subject.w, y = i / subject.w;
-    std::size_t tox = -1, toy = -1;
-    if (state.points[i].tree == Point::TREE_T) {
-      if (state.direction == FLOW_LEFT_RIGHT && x > 0) {
-        tox = x - 1;
-        toy = y;
-      } else if (state.direction == FLOW_TOP_BOTTOM && y > 0) {
-        tox = x;
-        toy = y - 1;
-      }
-    } else {
-      tox = x;
-      toy = y;
-    }
-    result->values[tox + toy*result->w] = subject.values[x+y*subject.w];
-    if (cut != NULL) {
-      cut->values[tox + toy*cut->w] ^= one;
-    }
-  }
-  return result;
-}
+FrameWrapper* cutFrame(FlowState& state, const FrameWrapper& subject,
+                       FrameWrapper* cut);
 
 #endif

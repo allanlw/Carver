@@ -12,6 +12,7 @@
 
 #include "point.h"
 #include "frame.h"
+#include "diff.h"
 
 using namespace std;
 
@@ -409,4 +410,53 @@ FlowState* getBestFlow(const Frame<unsigned char>& frame,
     delete P;
     adopt(*state);
   }
+}
+
+FrameWrapper* cutFrame(FlowState& state, const FrameWrapper& subject,
+                       FrameWrapper* cut) {
+  if ((subject.getWidth() != state.frame.w ||
+       subject.getHeight() != state.frame.h) ||
+      (cut != NULL && (cut->getWidth() != subject.getWidth() ||
+                       cut->getHeight() != subject.getHeight()))) {
+    return NULL;
+  }
+
+  FrameWrapper* result = new FrameWrapper(subject.color);
+  if (state.direction == FLOW_LEFT_RIGHT) {
+    result->setSize(subject.getWidth()-1, subject.getHeight());
+  } else {
+    result->setSize(subject.getWidth(), subject.getHeight()-1);
+  }
+
+  if (cut != NULL) {
+    zeroFrame(*cut);
+  }
+
+  for(size_t i = 0; i < state.points.size(); i++) {
+    std::size_t x = i % subject.getWidth(), y = i / subject.getWidth();
+    std::size_t tox = -1, toy = -1;
+    if (state.points[i].tree == Point::TREE_T) {
+      if (state.direction == FLOW_LEFT_RIGHT && x > 0) {
+        tox = x - 1;
+        toy = y;
+      } else if (state.direction == FLOW_TOP_BOTTOM && y > 0) {
+        tox = x;
+        toy = y - 1;
+      }
+    } else {
+      tox = x;
+      toy = y;
+    }
+    if (subject.color) {
+      result->colorFrame->values[tox + toy * result->getWidth()] =
+        subject.colorFrame->values[x + y * subject.getWidth()];
+    } else {
+      result->greyFrame->values[tox + toy * result->getWidth()] =
+        subject.greyFrame->values[x + y * subject.getWidth()];
+    }
+    if (cut != NULL) {
+      togglePixel(*cut, tox, toy);
+    }
+  }
+  return result;
 }

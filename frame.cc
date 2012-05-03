@@ -3,8 +3,24 @@
 #include <string>
 #include <cctype>
 #include <deque>
+#include <fstream>
 
 using namespace std;
+
+FrameWrapper* loadPnm(istream& is) {
+  string magic = getMagic(is);
+  FrameWrapper* result = new FrameWrapper;
+  if (magic == "P2" || magic == "P5") {
+    result->color = false;
+    result->greyFrame = loadPgm(is);
+    if (result->greyFrame == NULL) return NULL;
+  } else if (magic == "P3" || magic == "P6") {
+    result->color = true;
+    result->colorFrame = loadPpm(is);
+    if (result->colorFrame == NULL) return NULL;
+  }
+  return result;
+}
 
 string getMagic(std::istream& is) {
   char c = is.get();
@@ -199,3 +215,25 @@ void printPnm(const Frame<RgbPixel>& f, ostream& os, bool binary) {
 void printPnm(const Frame<unsigned char>& f, ostream& os, bool binary) {
   printPgm(f, os, binary);
 }
+
+void printPnm(const FrameWrapper& img, std::ostream& out, bool binary) {
+  if (img.color) {
+    printPpm(*img.colorFrame, out, binary);
+  } else {
+    printPgm(*img.greyFrame, out, binary);
+  }
+}
+
+void writePnm(const FrameWrapper& img, string name) {
+  fstream ofile(name.c_str(), fstream::out);
+  printPnm(img, ofile);
+  ofile.close();
+}
+
+FrameWrapper* loadPnm(string name) {
+  fstream ifile(name.c_str(), fstream::in);
+  FrameWrapper* inputImage = loadPnm(ifile);
+  ifile.close();
+  return inputImage;
+}
+

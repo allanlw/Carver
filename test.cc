@@ -15,13 +15,23 @@ static const string default_odebugfilename = "frame_seam.pnm";
 static const bool default_debug = false;
 static const size_t default_numcarves = 1;
 
-template<class T>
-void write_out_file(const Frame<T>& img, string name) {
+void write_out(FrameWrapper& frame, string name) {
   cout << "Writing to " << name << "\n";
-  fstream ofile(name.c_str(), fstream::out);
-  printPnm(img, ofile);
-  ofile.close();
+  writePnm(frame, name);
   cout << "Done writing output.\n";
+}
+
+FrameWrapper* read_in(string name) {
+  cout << "Loading " << name << "\n";
+  FrameWrapper* inputImage = loadPnm(name);
+  if (inputImage == NULL) {
+    cout << "Failed to load " << name << "\n";
+  } else {
+    cout << "Loaded " << name << " (" << inputImage->getHeight();
+    cout << "x" << inputImage->getWidth();
+    cout << " color:" << ((inputImage->color)?"true":"false") << ")" << "\n";
+  }
+  return inputImage;
 }
 
 void print_help() {
@@ -73,42 +83,18 @@ int main(int argc, char** argv) {
     }
   }
 
-  bool grey = false;
-  union {
-    Frame<unsigned char>* greyF;
-    Frame<RgbPixel>* rgbF;
-  };
-  union {
-    Frame<unsigned char>* greyR;
-    Frame<RgbPixel>* rgbR;
-  };
-  union {
-    Frame<unsigned char>* greyC;
-    Frame<RgbPixel>* rgbC;
-  };
+  FrameWrapper* inputImage = NULL;
+  FrameWrapper* current = NULL;
+  FrameWrapper* cut = NULL;
 
-  cout << "Loading " << ifilename << "\n";
-  fstream ifile(ifilename.c_str(), fstream::in);
-  string magic = getMagic(ifile);
-  if (magic == "P2" || magic == "P5") {
-    grey = true;
-    greyF = loadPgm(ifile);
-  } else if (magic == "P3" || magic == "P6") {
-    grey = false;
-    rgbF = loadPpm(ifile);
-  }
-  ifile.close();
-  if ((grey && greyF == NULL) || (!grey && rgbF == NULL)) {
-    cout << "Failed to load " << ifilename << "\n";
-    return 1;
-  }
-  cout << "Loaded " << ifilename << " (" << (grey?greyF->w:rgbF->w);
-  cout << "x" << (grey?greyF->h:rgbF->w);
-  cout << " grey:" << (grey?"true":"false") << ")" << "\n";
+  inputImage = read_in(ifilename);
+
+  if (inputImage == NULL) return 1;
+
+  current = inputImage;
 
   for (size_t i = 0; i < carves; i++) {
-    Frame<unsigned char>* diffF = (grey?getDifferential(*greyF):
-                                        getDifferential(*rgbF));
+    Frame<unsigned char>* diffF = getDifferential(*current);
 
     cout << "Calculating best flow...\n";
     FlowState* s = getBestFlow(*diffF, FLOW_LEFT_RIGHT);
@@ -117,58 +103,26 @@ int main(int argc, char** argv) {
 
     cout << "Cutting frame...\n";
     if (debug) {
-      if (grey) {
-        greyC = new Frame<unsigned char>();
-        greyC->w = greyF->w;
-        greyC->h = greyF->h;
-        greyC->values.resize(greyC->w * rgbC->h);
-      } else {
-        rgbC = new Frame<RgbPixel>();
-        rgbC->w = rgbF->w;
-        rgbC->h = rgbF->h;
-        rgbC->values.resize(rgbC->w * rgbC->h);
-      }
+      cut = new FrameWrapper(current->color);
+      cut->setSize(current->getWidth(), current->getHeight());
     } else {
-      if (grey) {
-        greyC = NULL;
-      } else {
-        rgbC = NULL;
-      }
+      cut = NULL;
     }
-    if (grey) {
-      greyR = cutFrame(*s, *greyF, greyC);
-      delete greyF;
-      greyF = greyR;
-    } else {
-      rgbR = cutFrame(*s, *rgbF, rgbC);
-      delete rgbF;
-      rgbF = rgbR;
-    }
-    cout << "Done cutting frame...\n";
+    FrameWrapper* result = cutFrame(*s, *current, cut);
+    delete current;
+    current = result;
     delete diffF;
     delete s;
+    cout << "Done cutting frame...\n";
   }
 
   if (debug) {
-    if (grey) {
-      write_out_file(*greyC, odebugfilename);
-    } else {
-      write_out_file(*rgbC, odebugfilename);
-    }
+    write_out(*cut, odebugfilename);
   }
 
-  if (grey) {
-    write_out_file(*greyF, ofilename);
-  } else {
-    write_out_file(*rgbF, ofilename);
-  }
+  write_out(*current, ofilename);
 
-  if (grey) {
-    delete greyF;
-    delete greyC;
-  } else {
-    delete rgbF;
-    delete rgbC;
-  }
+  delete current;
+  delete cut;
   return 0;
 }
