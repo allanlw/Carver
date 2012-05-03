@@ -7,8 +7,12 @@
 #include <queue>
 #include <stack>
 
-#include "point.h"
 #include "frame.h"
+
+typedef unsigned short _FlowStateTimeType;
+typedef unsigned short _FlowStateDistType;
+
+#include "point.h"
 
 enum FlowDirection {
   FLOW_LEFT_RIGHT,
@@ -26,7 +30,10 @@ public:
   // potential (small) speedup from using a vector with a large reserved size.
   typedef std::stack<Point*, std::deque<Point*> > OrphanSet;
 
-  std::size_t time;
+  typedef _FlowStateTimeType TimeType;
+  typedef _FlowStateDistType DistType;
+
+  TimeType time;
 
   PointsSet points;
 
@@ -41,6 +48,8 @@ public:
 
   FlowState(const Frame<unsigned char>& frame) : frame(frame) {}
 };
+
+#include "point.h"
 
 FlowState* getBestFlow(const Frame<unsigned char>& frame,
                        FlowDirection direction);

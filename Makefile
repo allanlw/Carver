@@ -19,9 +19,11 @@ OPT+=-funswitch-loops
 #OPT+=-fipa-cp-clone
 OPT+=-fno-exceptions
 #OPT+=-ftree-parallelize-loops
-OPT+=-fopenmp
+#OPT+=-fopenmp
+#OPT+=-fpack-struct -Wpacked
 
-CCFLAGS=-std=c++0x -Wall -Wextra $(OPT) $(DEBUG)
+CCFLAGS=-Wall -Wextra $(OPT) $(DEBUG)
+CCFLAGS+=-std=c++0x
 
 CCFILES=energy.cc frame.cc test.cc diff.cc
 OFILES=$(patsubst %.cc,%.o,$(CCFILES))

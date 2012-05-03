@@ -5,11 +5,14 @@
 #include <vector>
 #include <list>
 
+#include "energy.h"
 
 struct Point {
 public:
   // Only ever create at beginning. After that only iterate.
   typedef std::vector<Point*> NeighborSet;
+
+  typedef unsigned short EnergyType;
 
   enum Tree {
     TREE_NONE,
@@ -18,16 +21,16 @@ public:
   };
 
   Point* parent;
-  unsigned short capacity;
-  unsigned short flow;
+  EnergyType capacity;
+  EnergyType flow;
   NeighborSet to; // nodes I flow into
   NeighborSet from; // nodes that flow into me
   Point* next;
   Tree tree;
   bool active;
 
-  std::size_t dist;
-  std::size_t time;
+  _FlowStateDistType dist;
+  _FlowStateTimeType time;
 
   Point() : parent(NULL), capacity(0),
     flow(0), to(), from(), next(NULL), tree(TREE_NONE),

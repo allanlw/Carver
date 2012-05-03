@@ -9,6 +9,12 @@
 
 using namespace std;
 
+static const string default_ifilename = "frame.pnm";
+static const string default_ofilename = "frame_carved.pnm";
+static const string default_odebugfilename = "frame_seam.pnm";
+static const bool default_debug = false;
+static const size_t default_numcarves = 1;
+
 template<class T>
 void write_out_file(const Frame<T>& img, string name) {
   cout << "Writing to " << name << "\n";
@@ -18,16 +24,34 @@ void write_out_file(const Frame<T>& img, string name) {
   cout << "Done writing output.\n";
 }
 
+void print_help() {
+  cout << "\t-h\tPrint this help.\n";
+  cout << "\t-o\tSpecify output filename (default: ";
+  cout << default_ofilename << ")\n";
+  cout << "\t-f\tSpecify input filename (default: ";
+  cout << default_ifilename << ")\n";
+  cout << "\t-d\tEnable debug outut (default: ";
+  cout << (default_debug?"true":"false") << ")\n";
+  cout << "\t-g\tSpecify debug output filename (default: ";
+  cout << default_odebugfilename << ")\n";
+  cout << "\t-c\tSpecify number of carves (default: ";
+  cout << default_numcarves << ")\n";
+  return;
+}
+
 int main(int argc, char** argv) {
-  string ifilename = "frame.pnm";
-  string ofilename = "frame_carved.pnm";
-  string odebugfilename = "frame_seam.pnm";
-  bool debug = false;
-  size_t carves = 1;
+  string ifilename = default_ifilename;
+  string ofilename = default_ofilename;
+  string odebugfilename = default_odebugfilename;
+  bool debug = default_debug;
+  size_t carves = default_numcarves;
   int c;
 
-  while ((c = getopt(argc, argv, "f:o:dg:c:")) != -1) {
+  while ((c = getopt(argc, argv, "f:o:dg:c:h")) != -1) {
     switch (c) {
+    case 'h':
+      print_help();
+      return 0;
     case 'f':
       ifilename = optarg;
       break;
