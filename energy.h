@@ -29,6 +29,7 @@
 #include <stack>
 
 #include "frame.h"
+#include "diff.h"
 
 typedef unsigned short _FlowStateTimeType;
 typedef unsigned short _FlowStateDistType;
@@ -65,15 +66,19 @@ public:
   Point t;
 
   FlowDirection direction;
-  const Frame<PixelValue>& frame;
+  Frame<PixelValue>* energy;
 
-  FlowState(const Frame<PixelValue>& frame) : frame(frame) {}
+  FlowState(FrameWrapper& frame) :
+    energy(getDifferential(frame)) { }
+
+  void calcBestFlow(FlowDirection direction);
+
+  FrameWrapper* cutFrame(const FrameWrapper& subject,
+                         FrameWrapper* cut);
+
+  virtual ~FlowState() {
+    delete energy;
+  }
 };
-
-FlowState* getBestFlow(const Frame<PixelValue>& frame,
-                       FlowDirection direction);
-
-FrameWrapper* cutFrame(FlowState& state, const FrameWrapper& subject,
-                       FrameWrapper* cut);
 
 #endif

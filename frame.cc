@@ -253,10 +253,9 @@ void writePnm(const FrameWrapper& img, string name) {
   ofile.close();
 }
 
-FrameWrapper* loadPnm(string name) {
+FrameWrapper* readPnm(string name) {
   fstream ifile(name.c_str(), fstream::in);
   FrameWrapper* inputImage = loadPnm(ifile);
   ifile.close();
   return inputImage;
 }
-

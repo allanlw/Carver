@@ -58,12 +58,10 @@ static Glib::RefPtr<Gdk::Pixbuf> pixbuf_from_frame (FrameWrapper* frame) {
 
 class ImageCarver : public Gtk::Window {
 public:
-  ImageCarver(FrameWrapper* frame) : _buttonH(button_h_label),
+  ImageCarver() : _buttonH(button_h_label),
     _buttonV(button_v_label), _imagePane(Gtk::ORIENTATION_HORIZONTAL),
-    _originalFrame(frame) {
-
-    _currentFrame = new FrameWrapper(*frame);
-    _debugFrame = new FrameWrapper(*frame);
+    _originalFrame(NULL), _currentFrame(NULL), _debugFrame(NULL),
+    _state(NULL) {
 
     set_title(window_title);
     set_border_width(10);
@@ -92,14 +90,29 @@ public:
 
     update();
   }
+
   virtual ~ImageCarver() {
     delete _currentFrame;
     delete _debugFrame;
+    delete _state;
+  }
+
+  void setFrame(FrameWrapper* frame) {
+    _originalFrame = frame;
+    _currentFrame = new FrameWrapper(*frame);
+    _debugFrame = new FrameWrapper(*frame);
+    delete _state;
+    _state = new FlowState(*_currentFrame);
+    update();
   }
 
   void update() {
-    _image.set(pixbuf_from_frame(_currentFrame));
-    _debugImage.set(pixbuf_from_frame(_debugFrame));
+    if (_currentFrame != NULL) {
+      _image.set(pixbuf_from_frame(_currentFrame));
+    }
+    if (_debugFrame != NULL) {
+      _debugImage.set(pixbuf_from_frame(_debugFrame));
+    }
   }
 
   void button_h_clicked() {
@@ -111,19 +124,18 @@ public:
   }
 
   void do_carve(FlowDirection direction) {
-    Frame<PixelValue>* energy = getDifferential(*_currentFrame);
-    FlowState* state = getBestFlow(*energy, direction);
-    FrameWrapper* tempCut = new FrameWrapper(_currentFrame->color);
-    tempCut->setSize(_currentFrame->getWidth(),
-                     _currentFrame->getHeight());
-    FrameWrapper* temp = cutFrame(*state, *_currentFrame, tempCut);
-    delete _currentFrame;
-    delete _debugFrame;
-    _currentFrame = temp;
-    _debugFrame = tempCut;
-    delete state;
-    delete energy;
-    update();
+    if (_currentFrame != NULL) {
+      _state->calcBestFlow(direction);
+      FrameWrapper* tempCut = new FrameWrapper(_currentFrame->color);
+      tempCut->setSize(_currentFrame->getWidth(),
+                       _currentFrame->getHeight());
+      FrameWrapper* temp = _state->cutFrame(*_currentFrame, tempCut);
+      delete _currentFrame;
+      delete _debugFrame;
+      _currentFrame = temp;
+      _debugFrame = tempCut;
+      update();
+    }
   }
 
 protected:
@@ -134,30 +146,40 @@ protected:
   Gtk::Button _buttonH, _buttonV;
   Gtk::Paned _imagePane;
 
-  FrameWrapper* const _originalFrame;
+  FrameWrapper*  _originalFrame;
   FrameWrapper* _currentFrame;
   FrameWrapper* _debugFrame;
+  FlowState* _state;
 };
+
+void load_files(const Gio::Application::type_vec_files& files,
+                const Glib::ustring& stuff,
+                ImageCarver* carver) {
+  FrameWrapper* frame = readPnm(files[0]->get_path());
+  if (frame == NULL) {
+    
+  } else {
+    carver->setFrame(frame);
+  }
+}
 
 int main(int argc, char** argv) {
   Glib::RefPtr<Gtk::Application> app =
-    Gtk::Application::create(argc, argv, app_id);
+    Gtk::Application::create(argc, argv, app_id,
+                             Gio::APPLICATION_HANDLES_OPEN);
 
-  if (argc == 1) {
-    cout << "Image argument required!\n";
-    return 1;
-  }
+<<<<<<< HEAD
+  ImageCarver carver;
 
-  string fname(argv[1]);
-
-  FrameWrapper* frame = loadPnm(fname);
-
+  app->signal_open().connect(sigc::bind(&load_files, &carver));
+=======
   if (frame == NULL) {
     cout << "Unable to load file " << fname << "\n";
     return 1;
   }
 
   ImageCarver carver(frame);
+>>>>>>> d29cae4a7b7623e77e470773dbb987e707fca200
 
   return app->run(carver);
 }

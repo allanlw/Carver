@@ -44,7 +44,7 @@ void write_out(FrameWrapper& frame, string name) {
 
 FrameWrapper* read_in(string name) {
   cout << "Loading " << name << "\n";
-  FrameWrapper* inputImage = loadPnm(name);
+  FrameWrapper* inputImage = readPnm(name);
   if (inputImage == NULL) {
     cout << "Failed to load " << name << "\n";
   } else {
@@ -114,13 +114,13 @@ int main(int argc, char** argv) {
 
   current = inputImage;
 
-  for (size_t i = 0; i < carves; i++) {
-    Frame<PixelValue>* diffF = getDifferential(*current);
+  FlowState state(*current);
 
+  for (size_t i = 0; i < carves; i++) {
     cout << "Calculating best flow...\n";
-    FlowState* s = getBestFlow(*diffF, FLOW_LEFT_RIGHT);
-    cout << "Done calculating best flow (" << s->points.size();
-    cout << " nodes, flow: " << s->s.flow << ")!\n";
+    state.calcBestFlow(FLOW_LEFT_RIGHT);
+    cout << "Done calculating best flow (" << state.points.size();
+    cout << " nodes, flow: " << state.s.flow << ")!\n";
 
     cout << "Cutting frame...\n";
     if (debug) {
@@ -129,11 +129,9 @@ int main(int argc, char** argv) {
     } else {
       cut = NULL;
     }
-    FrameWrapper* result = cutFrame(*s, *current, cut);
+    FrameWrapper* result = state.cutFrame(*current, cut);
     delete current;
     current = result;
-    delete diffF;
-    delete s;
     cout << "Done cutting frame...\n";
   }
 

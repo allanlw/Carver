@@ -152,6 +152,6 @@ void printPnm(const FrameWrapper& img, std::ostream& out,
               bool binary=_BINARY_DEFAULT);
 
 void writePnm(const FrameWrapper& img, std::string name);
-FrameWrapper* loadPnm(std::string name);
+FrameWrapper* readPnm(std::string name);
 
 #endif
