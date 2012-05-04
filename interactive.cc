@@ -168,18 +168,9 @@ int main(int argc, char** argv) {
     Gtk::Application::create(argc, argv, app_id,
                              Gio::APPLICATION_HANDLES_OPEN);
 
-<<<<<<< HEAD
   ImageCarver carver;
 
   app->signal_open().connect(sigc::bind(&load_files, &carver));
-=======
-  if (frame == NULL) {
-    cout << "Unable to load file " << fname << "\n";
-    return 1;
-  }
-
-  ImageCarver carver(frame);
->>>>>>> d29cae4a7b7623e77e470773dbb987e707fca200
 
   return app->run(carver);
 }
