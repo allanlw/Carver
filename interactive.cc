@@ -153,11 +153,10 @@ int main(int argc, char** argv) {
   FrameWrapper* frame = loadPnm(fname);
 
   if (frame == NULL) {
-    cout << "Unable to load file" << fname << "\n";
+    cout << "Unable to load file " << fname << "\n";
     return 1;
   }
 
-//  Gtk::ApplicationWindow window(app);
   ImageCarver carver(frame);
 
   return app->run(carver);

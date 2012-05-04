@@ -39,6 +39,8 @@ FrameWrapper* loadPnm(istream& is) {
     result->color = true;
     result->colorFrame = loadPpm(is);
     if (result->colorFrame == NULL) return NULL;
+  } else {
+    return NULL;
   }
   return result;
 }
