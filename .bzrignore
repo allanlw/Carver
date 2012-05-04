@@ -1,7 +1,0 @@
-callgrind.out.*
-test
-gmon.out
-frame_carved.pnm
-frame_seam.pnm
-interactive
-examples
