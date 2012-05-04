@@ -1,0 +1,4 @@
+This software contains an implementation of an algorithm for content 
+aware image sizing, otherwise known as "image carving".
+
+Copyright (C) 2012 Allan Wirth <allan@allanwirth.com>
