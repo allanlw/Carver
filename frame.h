@@ -130,7 +130,6 @@ void printPnm(const Frame<PixelValue>& img, std::ostream& out,
 void printPnm(const FrameWrapper& img, std::ostream& out,
               bool binary=_BINARY_DEFAULT);
 
-
 void writePnm(const FrameWrapper& img, std::string name);
 FrameWrapper* loadPnm(std::string name);
 

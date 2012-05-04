@@ -147,6 +147,7 @@ static void getNeighbors(Point& p, FlowState& state,
   }
 }
 
+/* Returns > 0 if from is a valid parent of to */
 template <Point::Tree T>
 static Point::EnergyType tree_cap(const Point& from, const Point& to) {
   if (T == Point::TREE_S && from.next == &to) {
@@ -154,7 +155,7 @@ static Point::EnergyType tree_cap(const Point& from, const Point& to) {
   } else if (T == Point::TREE_T && to.next == &from) {
     return to.capacity - to.flow;
   } else {
-    return (Point::EnergyType)~0;
+    return (Point::EnergyType)1;
   }
 }
 
@@ -269,13 +270,16 @@ static void augment(FlowState& state, Path& P) {
   for (Path::iterator j = P.begin(), i = j++; j != P.end(); ++i, ++j) {
     Point& x = **i;
     Point& y = **j;
-    x.flow += bottleneck;
-    if (i != P.begin() && x.next == &y &&
-        x.flow >= x.capacity && x.tree == y.tree) {
-      if (x.tree == Point::TREE_S) {
-        addOrphan(state, &y);
-      } else { // implied x.tree == Point::TREE_T
-        addOrphan(state, &x);
+    if (i == P.begin()) {
+      x.flow += bottleneck;
+    } else if (x.next == &y) {
+      x.flow += bottleneck;
+      if(x.flow >= x.capacity && x.tree == y.tree) {
+        if (x.tree == Point::TREE_S) {
+          addOrphan(state, &y);
+        } else { // implied x.tree == Point::TREE_T
+          addOrphan(state, &x);
+        }
       }
     }
   }
@@ -300,7 +304,7 @@ static Path* do_grow(FlowState& state, Point& p) {
   for (Point::NeighborSet::iterator i = children.begin();
        i != children.end(); ++i) {
     Point& x = **i;
-    if (!tree_cap<T>(p, x)) {
+    if (tree_cap<T>(p, x) == 0) {
       continue;
     }
     switch(x.tree) {
@@ -347,9 +351,10 @@ static void buildGraph(FlowState& state) {
   const Frame<PixelValue>& frame = state.frame;
   for(size_t y = 0; y < frame.h; y++) {
     for(size_t x = 0; x < frame.w; x++) {
-      size_t o = getOff(state,x,y);
+      size_t o = getOff(state, x, y);
       Point& p = state.points[o];
-      p.capacity = frame.values[o]+1;
+      p.capacity = frame.values[o] + 1;
+      p.flow = 0;
       getNeighbors<true, direction>(p, state, x, y);
       if (p.to.front() != &state.t)
         p.next = p.to.front();

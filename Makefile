@@ -1,6 +1,6 @@
 #DEBUG+=-pg
 DEBUG+=-g
-DEBUG+=-march=native
+#DEBUG+=-march=native
 
 #OPT+=-O1
 OPT+=-O2
