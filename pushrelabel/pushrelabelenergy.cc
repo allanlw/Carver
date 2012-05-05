@@ -19,40 +19,63 @@
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef _EDMONDSKARPENERGY_H
-#define _EDMONDSKARPENERGY_H
+#include "pushrelabelenergy.h"
 
-#include <deque>
-#include <cstdlib>
-#include <cstring>
-#include <queue>
+#include <vector>
+#include <set>
+#include <map>
+#include <list>
+#include <cstddef>
+#include <utility>
+#include <limits>
+#include <algorithm>
 #include <stack>
+#include <iostream>
 
-#include "../energy.h"
-#include "../frame.h"
-#include "../diff.h"
-#include "../point.h"
+using namespace std;
 
-class EdmondsKarpFlowState : public FlowState {
-public:
-  // operations: add, remove something deque clearly faster
-  // queue much faster than stack (algorithmically)
-  typedef std::queue<Point*, std::deque<Point*> > ActiveSet;
-  // operators: add, remove something deque clearly faster than list
-  // potential (small) speedup from using a vector with a large reserved size.
-  typedef std::stack<Point*, std::deque<Point*> > OrphanSet;
+FlowState::EnergyType PushRelabelFlowState::calcMaxFlow(FlowDirection direction) {
+  this->direction = direction;
 
-  TimeType time;
+  A = ActiveSet();
+  O = OrphanSet();
 
-  ActiveSet A;
-  OrphanSet O;
+  s = Point();
+  t = Point();
 
-  EdmondsKarpFlowState(FrameWrapper& frame) :
-    FlowState(frame) { }
+  s.dist = t.dist = 0;
 
-  virtual EnergyType calcMaxFlow(FlowDirection direction);
+  points.clear();
+  points.resize(energy->h * energy->w);
 
-  virtual ~EdmondsKarpFlowState() { }
-};
+  if (direction == FLOW_LEFT_RIGHT) {
+    buildGraph<FLOW_LEFT_RIGHT>(*this);
+  } else {
+    buildGraph<FLOW_TOP_BOTTOM>(*this);
+  }
 
-#endif
+  while (true) {
+/*
+    Path* P = grow(*this);
+    if (P == NULL) {
+      return s.flow;
+    }
+
+    time += 1;
+    // hopefully this should never happen, but if it does...
+    if (time == 0) {
+      for (EdmondsKarpFlowState::PointsSet::iterator i = points.begin();
+           i != points.end(); ++i) {
+        i->time = 0;
+        i->dist = 0;
+      }
+      time += 1;
+    }
+    s.time = t.time = time;
+
+    augment(*this, *P);
+    delete P;
+    adopt(*this);
+*/
+  }
+}

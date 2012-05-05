@@ -19,40 +19,21 @@
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef _EDMONDSKARPENERGY_H
-#define _EDMONDSKARPENERGY_H
+#ifndef _CONST_H
+#define _CONST_H
 
-#include <deque>
-#include <cstdlib>
-#include <cstring>
-#include <queue>
-#include <stack>
-
-#include "../energy.h"
-#include "../frame.h"
-#include "../diff.h"
-#include "../point.h"
-
-class EdmondsKarpFlowState : public FlowState {
-public:
-  // operations: add, remove something deque clearly faster
-  // queue much faster than stack (algorithmically)
-  typedef std::queue<Point*, std::deque<Point*> > ActiveSet;
-  // operators: add, remove something deque clearly faster than list
-  // potential (small) speedup from using a vector with a large reserved size.
-  typedef std::stack<Point*, std::deque<Point*> > OrphanSet;
-
-  TimeType time;
-
-  ActiveSet A;
-  OrphanSet O;
-
-  EdmondsKarpFlowState(FrameWrapper& frame) :
-    FlowState(frame) { }
-
-  virtual EnergyType calcMaxFlow(FlowDirection direction);
-
-  virtual ~EdmondsKarpFlowState() { }
+enum MaxFlowAlogorithm {
+  EDMONDS_KARP,
+  PUSH_RELABEL,
 };
+
+#define DEFAULT_ALGORITHM EDMONDS_KARP
+
+// Best parent is an improvement in speed
+#define EDMONDS_KARP_BEST_PARENT true
+// Use the heuristic algorithm
+#define EDMONDS_KARP_USE_HEURISTIC true
+// Reassign parents (requires heuristic)
+#define EDMONDS_KARP_REASSIGN_PARENTS true
 
 #endif

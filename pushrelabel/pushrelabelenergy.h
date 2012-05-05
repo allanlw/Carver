@@ -19,8 +19,8 @@
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef _EDMONDSKARPENERGY_H
-#define _EDMONDSKARPENERGY_H
+#ifndef _PUSHRELABELENERGY_H
+#define _PUSHRELABELENERGY_H
 
 #include <deque>
 #include <cstdlib>
@@ -33,7 +33,7 @@
 #include "../diff.h"
 #include "../point.h"
 
-class EdmondsKarpFlowState : public FlowState {
+class PushRelabelFlowState : public FlowState {
 public:
   // operations: add, remove something deque clearly faster
   // queue much faster than stack (algorithmically)
@@ -42,17 +42,14 @@ public:
   // potential (small) speedup from using a vector with a large reserved size.
   typedef std::stack<Point*, std::deque<Point*> > OrphanSet;
 
-  TimeType time;
-
   ActiveSet A;
   OrphanSet O;
 
-  EdmondsKarpFlowState(FrameWrapper& frame) :
-    FlowState(frame) { }
+  PushRelabelFlowState(FrameWrapper& frame) : FlowState(frame) { }
 
   virtual EnergyType calcMaxFlow(FlowDirection direction);
 
-  virtual ~EdmondsKarpFlowState() { }
+  virtual ~PushRelabelFlowState() { }
 };
 
 #endif

@@ -33,6 +33,7 @@
 #include <iostream>
 
 #include "edmondskarp/edmondskarpenergy.h"
+#include "pushrelabel/pushrelabelenergy.h"
 
 using namespace std;
 
@@ -40,7 +41,69 @@ FlowState* getNewFlowState(FrameWrapper& frame) {
   switch (DEFAULT_ALGORITHM) {
   case EDMONDS_KARP:
     return new EdmondsKarpFlowState(frame);
+  case PUSH_RELABEL:
+    return new PushRelabelFlowState(frame);
   default:
     return NULL;
   }
+}
+
+FrameWrapper* FlowState::cutFrame(const FrameWrapper& subject,
+                                  FrameWrapper* cut) {
+  if ((subject.getWidth() != this->energy->w ||
+       subject.getHeight() != this->energy->h) ||
+      (cut != NULL && (cut->getWidth() != subject.getWidth() ||
+                       cut->getHeight() != subject.getHeight()))) {
+    return NULL;
+  }
+
+  FrameWrapper* result = new FrameWrapper(subject.color);
+  if (direction == FLOW_LEFT_RIGHT) {
+    result->setSize(subject.getWidth()-1, subject.getHeight());
+  } else {
+    result->setSize(subject.getWidth(), subject.getHeight()-1);
+  }
+
+  Frame<PixelValue>* newEnergy = new Frame<PixelValue>(result->getWidth(),
+                                                       result->getHeight());
+
+  if (cut != NULL) {
+    zeroFrame(*cut);
+  }
+
+  for(size_t i = 0; i < points.size(); i++) {
+    std::size_t x = i % subject.getWidth(), y = i / subject.getWidth();
+    std::size_t tox, toy;
+    if (points[i].tree == Point::TREE_T ||
+        points[i].tree == Point::TREE_NONE) {
+      if (direction == FLOW_LEFT_RIGHT && x > 0) {
+        tox = x - 1;
+        toy = y;
+      } else if (direction == FLOW_TOP_BOTTOM && y > 0) {
+        tox = x;
+        toy = y - 1;
+      } else {
+        tox = x;
+        toy = y;
+      }
+    } else {
+      tox = x;
+      toy = y;
+    }
+    if (subject.color) {
+      result->colorFrame->values[tox + toy * result->getWidth()] =
+        subject.colorFrame->values[x + y * subject.getWidth()];
+    } else {
+      result->greyFrame->values[tox + toy * result->getWidth()] =
+        subject.greyFrame->values[x + y * subject.getWidth()];
+    }
+    newEnergy->values[tox + toy * newEnergy->w] =
+      this->energy->values[x + y * this->energy->w];
+    if (cut != NULL) {
+      togglePixel(*cut, tox, toy);
+    }
+  }
+  delete this->energy;
+  this->energy = newEnergy;
+  return result;
 }

@@ -28,7 +28,7 @@ CCFLAGS+=-std=c++0x
 INTERACTIVEFLAGS:=$(shell pkg-config gtkmm-3.0 --libs --cflags)
 
 CCFILES=energy.cc frame.cc test.cc diff.cc interactive.cc
-CCFILES+=edmondskarp/edmondskarpenergy.cc
+CCFILES+=edmondskarp/edmondskarpenergy.cc pushrelabel/pushrelabelenergy.cc
 OFILES:=$(filter-out interactive.o, $(patsubst %.cc,%.o,$(CCFILES)))
 
 EXEFILES=test interactive
