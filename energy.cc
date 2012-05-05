@@ -32,8 +32,8 @@
 #include <stack>
 #include <iostream>
 
-#include "edmondskarp/edmondskarpenergy.h"
-#include "pushrelabel/pushrelabelenergy.h"
+#include "edmondskarp.h"
+#include "pushrelabel.h"
 
 using namespace std;
 

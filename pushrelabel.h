@@ -28,10 +28,10 @@
 #include <queue>
 #include <stack>
 
-#include "../energy.h"
-#include "../frame.h"
-#include "../diff.h"
-#include "../point.h"
+#include "energy.h"
+#include "frame.h"
+#include "diff.h"
+#include "point.h"
 
 class PushRelabelFlowState : public FlowState {
 public:

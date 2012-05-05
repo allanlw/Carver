@@ -19,7 +19,7 @@
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#include "edmondskarpenergy.h"
+#include "edmondskarp.h"
 
 #include <vector>
 #include <set>
@@ -32,7 +32,7 @@
 #include <stack>
 #include <iostream>
 
-#include "../const.h"
+#include "const.h"
 
 using namespace std;
 
