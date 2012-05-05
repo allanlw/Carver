@@ -19,8 +19,8 @@
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef _ENERGY_H
-#define _ENERGY_H
+#ifndef _EDMONDSKARPENERGY_H
+#define _EDMONDSKARPENERGY_H
 
 #include <deque>
 #include <cstdlib>
@@ -28,39 +28,48 @@
 #include <queue>
 #include <stack>
 
-#include "frame.h"
-#include "diff.h"
+#include "../energy.h"
+#include "../frame.h"
+#include "../diff.h"
 
-enum MaxFlowAlogorithm {
-  EDMONDS_KARP,
-};
+typedef unsigned short _FlowStateTimeType;
+typedef unsigned short _FlowStateDistType;
 
-#define DEFAULT_ALGORITHM EDMONDS_KARP
+#include "edmondskarppoint.h"
 
-enum FlowDirection {
-  FLOW_LEFT_RIGHT,
-  FLOW_TOP_BOTTOM
-};
-
-class FlowState {
+class EdmondsKarpFlowState : public FlowState {
 public:
-  typedef unsigned short EnergyType;
-  FlowDirection direction;
-  Frame<PixelValue>* energy;
-protected:
-  FlowState(FrameWrapper& frame) :
-    energy(getDifferential(frame)) { }
-public:
-  virtual EnergyType calcMaxFlow(FlowDirection direction) = 0;
+  // random access required, vector/deque approx same speed.
+  typedef std::vector<EdmondsKarpPoint> PointsSet;
+  // operations: add, remove something deque clearly faster
+  // queue much faster than stack (algorithmically)
+  typedef std::queue<EdmondsKarpPoint*, std::deque<EdmondsKarpPoint*> > ActiveSet;
+  // operators: add, remove something deque clearly faster than list
+  // potential (small) speedup from using a vector with a large reserved size.
+  typedef std::stack<EdmondsKarpPoint*, std::deque<EdmondsKarpPoint*> > OrphanSet;
+
+  typedef _FlowStateTimeType TimeType;
+  typedef _FlowStateDistType DistType;
+
+  TimeType time;
+
+  PointsSet points;
+
+  ActiveSet A;
+  OrphanSet O;
+
+  EdmondsKarpPoint s;
+  EdmondsKarpPoint t;
+
+  EdmondsKarpFlowState(FrameWrapper& frame) :
+    FlowState(frame) { }
+
+  virtual EnergyType calcMaxFlow(FlowDirection direction);
 
   virtual FrameWrapper* cutFrame(const FrameWrapper& subject,
-                                 FrameWrapper* cut) = 0;
+                                 FrameWrapper* cut);
 
-  virtual ~FlowState() {
-    delete energy;
-  }
+  virtual ~EdmondsKarpFlowState() { }
 };
-
-FlowState* getNewFlowState(FrameWrapper& frame);
 
 #endif

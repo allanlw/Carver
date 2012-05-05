@@ -19,21 +19,20 @@
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef _POINT_H
-#define _POINT_H
+#ifndef _EDMONDSKARPPOINT_H
+#define _EDMONDSKARPPOINT_H
 
 #include <cstddef>
 #include <vector>
 #include <list>
 
-#include "energy.h"
+#include "../energy.h"
+#include "edmondskarpenergy.h"
 
-struct Point {
+struct EdmondsKarpPoint {
 public:
   // Only ever create at beginning. After that only iterate.
-  typedef std::vector<Point*> NeighborSet;
-
-  typedef unsigned short EnergyType;
+  typedef std::vector<EdmondsKarpPoint*> NeighborSet;
 
   enum Tree {
     TREE_NONE,
@@ -41,26 +40,26 @@ public:
     TREE_T
   };
 
-  Point* parent;
-  EnergyType capacity;
-  EnergyType flow;
+  EdmondsKarpPoint* parent;
+  FlowState::EnergyType capacity;
+  FlowState::EnergyType flow;
   NeighborSet to; // nodes I flow into
   NeighborSet from; // nodes that flow into me
-  Point* next;
+  EdmondsKarpPoint* next;
   Tree tree;
   bool active;
 
   _FlowStateDistType dist;
   _FlowStateTimeType time;
 
-  Point() : parent(NULL), capacity(0),
+  EdmondsKarpPoint() : parent(NULL), capacity(0),
     flow(0), to(), from(), next(NULL), tree(TREE_NONE),
     active(false), dist(0), time(0) {};
-  Point(const Point& other) : parent(other.parent),
+  EdmondsKarpPoint(const EdmondsKarpPoint& other) : parent(other.parent),
     capacity(other.capacity), flow(other.flow), to(other.to),
     from(other.from), next(other.next), tree(other.tree),
     active(other.active), dist(other.dist), time(other.time) {};
-  Point& operator=(const Point& other) {
+  EdmondsKarpPoint& operator=(const EdmondsKarpPoint& other) {
     if (&other != this) {
       this->parent = other.parent;
       this->capacity = other.capacity;

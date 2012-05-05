@@ -114,13 +114,13 @@ int main(int argc, char** argv) {
 
   current = inputImage;
 
-  FlowState state(*current);
+  FlowState* state = getNewFlowState(*current);
 
   for (size_t i = 0; i < carves; i++) {
     cout << "Calculating best flow...\n";
-    state.calcBestFlow(FLOW_LEFT_RIGHT);
-    cout << "Done calculating best flow (" << state.points.size();
-    cout << " nodes, flow: " << state.s.flow << ")!\n";
+    FlowState::EnergyType t = state->calcMaxFlow(FLOW_LEFT_RIGHT);
+    cout << "Done calculating best flow (" << state->energy->w * state->energy->h;
+    cout << " nodes, flow: " << t << ")!\n";
 
     cout << "Cutting frame...\n";
     if (debug) {
@@ -129,7 +129,7 @@ int main(int argc, char** argv) {
     } else {
       cut = NULL;
     }
-    FrameWrapper* result = state.cutFrame(*current, cut);
+    FrameWrapper* result = state->cutFrame(*current, cut);
     delete current;
     current = result;
     cout << "Done cutting frame...\n";
@@ -141,6 +141,7 @@ int main(int argc, char** argv) {
 
   write_out(*current, ofilename);
 
+  delete state;
   delete current;
   delete cut;
   return 0;

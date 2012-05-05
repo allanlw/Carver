@@ -102,7 +102,7 @@ public:
     _currentFrame = new FrameWrapper(*frame);
     _debugFrame = new FrameWrapper(*frame);
     delete _state;
-    _state = new FlowState(*_currentFrame);
+    _state = getNewFlowState(*_currentFrame);
     update();
   }
 
@@ -125,7 +125,7 @@ public:
 
   void do_carve(FlowDirection direction) {
     if (_currentFrame != NULL) {
-      _state->calcBestFlow(direction);
+      _state->calcMaxFlow(direction);
       FrameWrapper* tempCut = new FrameWrapper(_currentFrame->color);
       tempCut->setSize(_currentFrame->getWidth(),
                        _currentFrame->getHeight());
