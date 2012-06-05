@@ -22,15 +22,10 @@
 #ifndef _ENERGY_H
 #define _ENERGY_H
 
-#include <deque>
-#include <cstdlib>
-#include <cstring>
-#include <queue>
-#include <stack>
+#include <vector>
 
 #include "frame.h"
 #include "diff.h"
-#include "const.h"
 
 typedef unsigned short _FlowStateEnergyType;
 typedef unsigned short _FlowStateDistType;

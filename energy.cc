@@ -21,17 +21,6 @@
  */
 #include "energy.h"
 
-#include <vector>
-#include <set>
-#include <map>
-#include <list>
-#include <cstddef>
-#include <utility>
-#include <limits>
-#include <algorithm>
-#include <stack>
-#include <iostream>
-
 #include "edmondskarp.h"
 #include "pushrelabel.h"
 

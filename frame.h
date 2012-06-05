@@ -22,14 +22,14 @@
 #ifndef _FRAME_H
 #define _FRAME_H
 
+#include <cstdint>
 #include <cstddef>
 #include <vector>
 #include <istream>
 #include <ostream>
 #include <string>
-#include <cstdint>
 
-#define _BINARY_DEFAULT true
+#include "const.h"
 
 typedef std::uint8_t PixelValue;
 
@@ -140,16 +140,16 @@ Frame<RgbPixel>* loadPpm(std::istream& is);
 FrameWrapper* loadPnm(std::istream& is);
 
 void printPgm(const Frame<PixelValue>& f, std::ostream& os,
-              bool binary=_BINARY_DEFAULT);
+              bool binary=PNM_BINARY_DEFAULT);
 void printPpm(const Frame<RgbPixel>& f, std::ostream& os,
-              bool binary=_BINARY_DEFAULT);
+              bool binary=PNM_BINARY_DEFAULT);
 
 void printPnm(const Frame<RgbPixel>& img, std::ostream& out,
-              bool binary=_BINARY_DEFAULT);
+              bool binary=PNM_BINARY_DEFAULT);
 void printPnm(const Frame<PixelValue>& img, std::ostream& out,
-              bool binary=_BINARY_DEFAULT);
+              bool binary=PNM_BINARY_DEFAULT);
 void printPnm(const FrameWrapper& img, std::ostream& out,
-              bool binary=_BINARY_DEFAULT);
+              bool binary=PNM_BINARY_DEFAULT);
 
 void writePnm(const FrameWrapper& img, std::string name);
 FrameWrapper* readPnm(std::string name);

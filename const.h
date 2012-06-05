@@ -36,4 +36,8 @@ enum MaxFlowAlogorithm {
 // Reassign parents (requires heuristic)
 #define EDMONDS_KARP_REASSIGN_PARENTS true
 
+
+// More efficient
+#define PNM_BINARY_DEFAULT true
+
 #endif

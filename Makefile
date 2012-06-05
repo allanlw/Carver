@@ -5,6 +5,7 @@ DEBUG+=-g
 #OPT+=-O1
 #OPT+=-O2
 OPT+=-O3
+OPT+=-flto
 OPT+=-finline-functions
 #OPT+=-fno-inline-small-functions
 #OPT+=-fshort-enums

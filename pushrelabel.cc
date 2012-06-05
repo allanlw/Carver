@@ -21,17 +21,6 @@
  */
 #include "pushrelabel.h"
 
-#include <vector>
-#include <set>
-#include <map>
-#include <list>
-#include <cstddef>
-#include <utility>
-#include <limits>
-#include <algorithm>
-#include <stack>
-#include <iostream>
-
 using namespace std;
 
 FlowState::EnergyType PushRelabelFlowState::calcMaxFlow(FlowDirection direction) {

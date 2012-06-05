@@ -21,17 +21,6 @@
  */
 #include "edmondskarp.h"
 
-#include <vector>
-#include <set>
-#include <map>
-#include <list>
-#include <cstddef>
-#include <utility>
-#include <limits>
-#include <algorithm>
-#include <stack>
-#include <iostream>
-
 #include "const.h"
 
 using namespace std;

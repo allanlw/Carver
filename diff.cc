@@ -21,8 +21,6 @@
  */
 #include "diff.h"
 
-#include <cstdlib>
-
 using namespace std;
 
 Frame<PixelValue>* getDifferential(const Frame<PixelValue>& frame) {

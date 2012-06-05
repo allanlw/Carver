@@ -23,15 +23,10 @@
 #define _EDMONDSKARPENERGY_H
 
 #include <deque>
-#include <cstdlib>
-#include <cstring>
 #include <queue>
 #include <stack>
 
 #include "energy.h"
-#include "frame.h"
-#include "diff.h"
-#include "point.h"
 
 class EdmondsKarpFlowState : public FlowState {
 public:

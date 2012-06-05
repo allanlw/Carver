@@ -24,7 +24,6 @@
 
 #include <cstddef>
 #include <vector>
-#include <list>
 
 #include "energy.h"
 
