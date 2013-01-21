@@ -42,9 +42,17 @@ ImageCarver::ImageCarver() : _currentFrame(NULL), _debugFrame(NULL),
   Gtk::VBox *_mainBox = new Gtk::VBox();
   add(*_mainBox);
 
+  Gtk::ScrolledWindow *_imageWindow = new Gtk::ScrolledWindow();
+  _imageWindow->add(_image);
+  _imageWindow->set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
+
+  Gtk::ScrolledWindow *_debugImageWindow = new Gtk::ScrolledWindow();
+  _debugImageWindow->add(_debugImage);
+  _debugImageWindow->set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
+
   Gtk::Paned *_imagePane = new Gtk::Paned(Gtk::ORIENTATION_HORIZONTAL);
-  _imagePane->pack1(_image, true, true);
-  _imagePane->pack2(_debugImage, true, true);
+  _imagePane->pack1(*_imageWindow, true, true);
+  _imagePane->pack2(*_debugImageWindow, true, true);
   _mainBox->pack_start(*_imagePane, true, true);
 
   Gtk::ButtonBox *_buttonBox = new Gtk::ButtonBox();
@@ -76,6 +84,17 @@ void ImageCarver::setFrame(FrameWrapper* frame) {
   _currentFrame = new FrameWrapper(*frame);
   _debugFrame = new FrameWrapper(*frame);
   _state = getNewFlowState(*_currentFrame);
+
+  int maxw = get_screen()->get_width()/2;
+  int maxh = get_screen()->get_height()/2;
+  int fw = _currentFrame->getWidth();
+  int fh = _currentFrame->getHeight();
+  int neww = fw * 2 < maxw ? fw*2 : maxw;
+  int newh = fh * 2 < maxh ? fh*2 : maxh;
+
+  set_default_size(neww + 100,
+      newh + 100);
+
   update();
 }
 
