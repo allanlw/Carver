@@ -19,12 +19,11 @@
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#include <gtkmm.h>
+#include "interactive.h"
+
 #include <iostream>
 #include <string>
 
-#include "frame.h"
-#include "energy.h"
 #include "diff.h"
 
 using namespace std;
@@ -34,7 +33,93 @@ const static char* window_title = "Image Carver";
 const static char* button_h_label = "Shrink Horizontal";
 const static char* button_v_label = "Shrink Vertical";
 
-static Glib::RefPtr<Gdk::Pixbuf> pixbuf_from_frame (FrameWrapper* frame) {
+ImageCarver::ImageCarver() : _currentFrame(NULL), _debugFrame(NULL),
+    _state(NULL) {
+
+  set_title(window_title);
+  set_border_width(10);
+
+  Gtk::VBox *_mainBox = new Gtk::VBox();
+  add(*_mainBox);
+
+  Gtk::ScrolledWindow *_imageWindow = new Gtk::ScrolledWindow();
+  _imageWindow->add(_image);
+  _imageWindow->set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
+
+  Gtk::ScrolledWindow *_debugImageWindow = new Gtk::ScrolledWindow();
+  _debugImageWindow->add(_debugImage);
+  _debugImageWindow->set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
+
+  Gtk::Paned *_imagePane = new Gtk::Paned(Gtk::ORIENTATION_HORIZONTAL);
+  _imagePane->pack1(*_imageWindow, true, true);
+  _imagePane->pack2(*_debugImageWindow, true, true);
+  _mainBox->pack_start(*_imagePane, true, true);
+
+  Gtk::ButtonBox *_buttonBox = new Gtk::ButtonBox();
+  _mainBox->pack_end(*_buttonBox, false, false);
+
+  Gtk::Button *_buttonH = new Gtk::Button(button_h_label);
+  _buttonBox->pack_start(*_buttonH);
+  _buttonH->signal_clicked().connect(sigc::mem_fun(*this,
+    &ImageCarver::button_h_clicked));
+
+  Gtk::Button *_buttonV = new Gtk::Button(button_v_label);
+  _buttonBox->pack_start(*_buttonV);
+  _buttonV->signal_clicked().connect(sigc::mem_fun(*this,
+    &ImageCarver::button_v_clicked));
+
+  _mainBox->show_all();
+
+   update();
+}
+
+ImageCarver::~ImageCarver() {
+  delete _currentFrame;
+  delete _debugFrame;
+  delete _state;
+}
+
+void ImageCarver::setFrame(FrameWrapper* frame) {
+  _currentFrame = new FrameWrapper(*frame);
+  _debugFrame = new FrameWrapper(*frame);
+  delete _state;
+  _state = getNewFlowState(*_currentFrame);
+  update();
+}
+
+void ImageCarver::update() {
+  if (_currentFrame != NULL) {
+    _image.set(pixbuf_from_frame(_currentFrame));
+  }
+  if (_debugFrame != NULL) {
+    _debugImage.set(pixbuf_from_frame(_debugFrame));
+  }
+}
+
+void ImageCarver::button_h_clicked() {
+  do_carve(FLOW_LEFT_RIGHT);
+}
+
+void ImageCarver::button_v_clicked() {
+  do_carve(FLOW_TOP_BOTTOM);
+}
+
+void ImageCarver::do_carve(FlowDirection direction) {
+  if (_currentFrame != NULL) {
+    _state->calcMaxFlow(direction);
+    FrameWrapper* tempCut = new FrameWrapper(_currentFrame->color);
+    tempCut->setSize(_currentFrame->getWidth(),
+                     _currentFrame->getHeight());
+    FrameWrapper* temp = _state->cutFrame(*_currentFrame, tempCut);
+    delete _currentFrame;
+    delete _debugFrame;
+    _currentFrame = temp;
+    _debugFrame = tempCut;
+    update();
+  }
+}
+
+Glib::RefPtr<Gdk::Pixbuf> ImageCarver::pixbuf_from_frame (FrameWrapper* frame) {
   Glib::RefPtr<Gdk::Pixbuf> result = Gdk::Pixbuf::create(Gdk::COLORSPACE_RGB,
     false, 8, frame->getWidth(), frame->getHeight());
   guint8* pixels = result->get_pixels();
@@ -56,121 +141,33 @@ static Glib::RefPtr<Gdk::Pixbuf> pixbuf_from_frame (FrameWrapper* frame) {
   return result;
 }
 
-class ImageCarver : public Gtk::Window {
-public:
-  ImageCarver() : _buttonH(button_h_label),
-    _buttonV(button_v_label), _imagePane(Gtk::ORIENTATION_HORIZONTAL),
-    _originalFrame(NULL), _currentFrame(NULL), _debugFrame(NULL),
-    _state(NULL) {
+ImageCarverApplication::ImageCarverApplication() : Gtk::Application(app_id,
+    Gio::APPLICATION_HANDLES_OPEN) {
+  Glib::set_application_name(window_title);
+}
 
-    set_title(window_title);
-    set_border_width(10);
-    add(_mainBox);
+Glib::RefPtr<ImageCarverApplication> ImageCarverApplication::create() {
+  return Glib::RefPtr<ImageCarverApplication>( new ImageCarverApplication() );
+}
 
-    _imageWindow.add(_image);
-    _imageWindow.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
+void ImageCarverApplication::create_window(const Glib::RefPtr<Gio::File>& file) {
+  ImageCarver *car = new ImageCarver();
+  add_window(*car);
 
-    _debugImageWindow.add(_debugImage);
-    _debugImageWindow.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
+  car->setFrame(readPnm(file->get_path()));
 
-    _imagePane.pack1(_imageWindow, true, true);
-    _imagePane.pack2(_debugImageWindow, true, true);
+  car->show();
+}
 
-    _mainBox.pack_start(_imagePane, true, true);
-    _mainBox.pack_end(_buttonBox, false, false);
-
-    _buttonBox.pack_start(_buttonH);
-    _buttonH.signal_clicked().connect(sigc::mem_fun(*this,
-      &ImageCarver::button_h_clicked));
-    _buttonBox.pack_start(_buttonV);
-    _buttonV.signal_clicked().connect(sigc::mem_fun(*this,
-      &ImageCarver::button_v_clicked));
-
-    _mainBox.show_all();
-
-    update();
-  }
-
-  virtual ~ImageCarver() {
-    delete _currentFrame;
-    delete _debugFrame;
-    delete _state;
-  }
-
-  void setFrame(FrameWrapper* frame) {
-    _originalFrame = frame;
-    _currentFrame = new FrameWrapper(*frame);
-    _debugFrame = new FrameWrapper(*frame);
-    delete _state;
-    _state = getNewFlowState(*_currentFrame);
-    update();
-  }
-
-  void update() {
-    if (_currentFrame != NULL) {
-      _image.set(pixbuf_from_frame(_currentFrame));
-    }
-    if (_debugFrame != NULL) {
-      _debugImage.set(pixbuf_from_frame(_debugFrame));
-    }
-  }
-
-  void button_h_clicked() {
-    do_carve(FLOW_LEFT_RIGHT);
-  }
-
-  void button_v_clicked() {
-    do_carve(FLOW_TOP_BOTTOM);
-  }
-
-  void do_carve(FlowDirection direction) {
-    if (_currentFrame != NULL) {
-      _state->calcMaxFlow(direction);
-      FrameWrapper* tempCut = new FrameWrapper(_currentFrame->color);
-      tempCut->setSize(_currentFrame->getWidth(),
-                       _currentFrame->getHeight());
-      FrameWrapper* temp = _state->cutFrame(*_currentFrame, tempCut);
-      delete _currentFrame;
-      delete _debugFrame;
-      _currentFrame = temp;
-      _debugFrame = tempCut;
-      update();
-    }
-  }
-
-protected:
-  Gtk::VBox _mainBox;
-  Gtk::HBox _buttonBox;
-  Gtk::Image _image, _debugImage;
-  Gtk::ScrolledWindow _imageWindow, _debugImageWindow;
-  Gtk::Button _buttonH, _buttonV;
-  Gtk::Paned _imagePane;
-
-  FrameWrapper*  _originalFrame;
-  FrameWrapper* _currentFrame;
-  FrameWrapper* _debugFrame;
-  FlowState* _state;
-};
-
-void load_files(const Gio::Application::type_vec_files& files,
-                const Glib::ustring& stuff,
-                ImageCarver* carver) {
-  FrameWrapper* frame = readPnm(files[0]->get_path());
-  if (frame == NULL) {
-    
-  } else {
-    carver->setFrame(frame);
+void ImageCarverApplication::on_open(const Gio::Application::type_vec_files& files,
+    const Glib::ustring& hint) {
+  if (files.size()) {
+    create_window(Glib::RefPtr<Gio::File>(files[0]));
   }
 }
 
 int main(int argc, char** argv) {
-  Glib::RefPtr<Gtk::Application> app =
-    Gtk::Application::create(argc, argv, app_id,
-                             Gio::APPLICATION_HANDLES_OPEN);
+  Glib::RefPtr<ImageCarverApplication> app = ImageCarverApplication::create();
 
-  ImageCarver carver;
-
-  app->signal_open().connect(sigc::bind(&load_files, &carver));
-
-  return app->run(carver);
+  return app->run(argc, argv);
 }
