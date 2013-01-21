@@ -42,17 +42,9 @@ ImageCarver::ImageCarver() : _currentFrame(NULL), _debugFrame(NULL),
   Gtk::VBox *_mainBox = new Gtk::VBox();
   add(*_mainBox);
 
-  Gtk::ScrolledWindow *_imageWindow = new Gtk::ScrolledWindow();
-  _imageWindow->add(_image);
-  _imageWindow->set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
-
-  Gtk::ScrolledWindow *_debugImageWindow = new Gtk::ScrolledWindow();
-  _debugImageWindow->add(_debugImage);
-  _debugImageWindow->set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
-
   Gtk::Paned *_imagePane = new Gtk::Paned(Gtk::ORIENTATION_HORIZONTAL);
-  _imagePane->pack1(*_imageWindow, true, true);
-  _imagePane->pack2(*_debugImageWindow, true, true);
+  _imagePane->pack1(_image, true, true);
+  _imagePane->pack2(_debugImage, true, true);
   _mainBox->pack_start(*_imagePane, true, true);
 
   Gtk::ButtonBox *_buttonBox = new Gtk::ButtonBox();
@@ -69,8 +61,6 @@ ImageCarver::ImageCarver() : _currentFrame(NULL), _debugFrame(NULL),
     &ImageCarver::button_v_clicked));
 
   _mainBox->show_all();
-
-   update();
 }
 
 ImageCarver::~ImageCarver() {
@@ -80,9 +70,11 @@ ImageCarver::~ImageCarver() {
 }
 
 void ImageCarver::setFrame(FrameWrapper* frame) {
+  delete _state;
+  delete _currentFrame;
+  delete _debugFrame;
   _currentFrame = new FrameWrapper(*frame);
   _debugFrame = new FrameWrapper(*frame);
-  delete _state;
   _state = getNewFlowState(*_currentFrame);
   update();
 }
